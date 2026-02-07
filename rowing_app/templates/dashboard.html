@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard – Concept2 Rowing Analytics</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>&#x1F6A3; Dashboard</h1>
+            <nav>
+                <span>Welcome, <strong>{{ user.first_name or user.username }}</strong></span>
+                <a href="/auth/logout" class="btn btn-secondary btn-sm">Logout</a>
+            </nav>
+        </header>
+
+        <!-- ── Filters ────────────────────────── -->
+        <section class="filters">
+            <form method="get" action="/dashboard">
+                <label>From: <input type="date" name="from_date" value="{{ from_date }}"></label>
+                <label>To: <input type="date" name="to_date" value="{{ to_date }}"></label>
+                <label>Machine:
+                    <select name="machine_type">
+                        <option value="">All</option>
+                        <option value="rower" {{ 'selected' if machine_type == 'rower' }}>Rower</option>
+                        <option value="skierg" {{ 'selected' if machine_type == 'skierg' }}>SkiErg</option>
+                        <option value="bike" {{ 'selected' if machine_type == 'bike' }}>BikeErg</option>
+                        <option value="dynamic" {{ 'selected' if machine_type == 'dynamic' }}>Dynamic</option>
+                    </select>
+                </label>
+                <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+            </form>
+        </section>
+
+        <!-- ── Summary Cards ──────────────────── -->
+        <section class="summary-cards">
+            <div class="card">
+                <h3>Total Workouts</h3>
+                <p class="stat">{{ summary.total_workouts }}</p>
+            </div>
+            <div class="card">
+                <h3>Total Distance</h3>
+                <p class="stat">{{ summary.total_distance_km | default('0') }} km</p>
+            </div>
+            <div class="card">
+                <h3>Total Time</h3>
+                <p class="stat">{{ summary.total_time_hours | default('0') }} hrs</p>
+            </div>
+            <div class="card">
+                <h3>Avg Pace /500m</h3>
+                <p class="stat">{{ summary.avg_pace_500m | default('N/A') }}</p>
+            </div>
+            <div class="card">
+                <h3>Avg Stroke Rate</h3>
+                <p class="stat">{{ summary.avg_stroke_rate | default('N/A') }} spm</p>
+            </div>
+            <div class="card">
+                <h3>Avg Calories</h3>
+                <p class="stat">{{ summary.avg_calories | default('N/A') }} cal</p>
+            </div>
+        </section>
+
+        <!-- ── Personal Bests ─────────────────── -->
+        {% if personal_bests %}
+        <section class="personal-bests">
+            <h2>Personal Bests</h2>
+            <table>
+                <thead>
+                    <tr><th>Distance</th><th>Time</th><th>Pace /500m</th><th>Date</th></tr>
+                </thead>
+                <tbody>
+                    {% for distance, pb in personal_bests.items() %}
+                    <tr>
+                        <td>{{ distance }}</td>
+                        <td>{{ pb.time }}</td>
+                        <td>{{ pb.pace }}</td>
+                        <td>{{ pb.date }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+        {% endif %}
+
+        <!-- ── Charts ─────────────────────────── -->
+        <section class="charts">
+            {% if charts.monthly_distance %}
+            <div class="chart-container">
+                {{ charts.monthly_distance | safe }}
+            </div>
+            {% endif %}
+
+            {% if charts.weekly_distance %}
+            <div class="chart-container">
+                {{ charts.weekly_distance | safe }}
+            </div>
+            {% endif %}
+
+            {% if charts.pace_trend %}
+            <div class="chart-container">
+                {{ charts.pace_trend | safe }}
+            </div>
+            {% endif %}
+        </section>
+
+        <!-- ── Training Heatmap ───────────────── -->
+        {% if charts.heatmap %}
+        <section class="charts">
+            <h2>&#x1F4C5; Training Heatmap</h2>
+            <p class="section-desc">A GitHub-style calendar showing my daily rowing volume. Darker green = more meters.</p>
+            <div class="chart-container">
+                {{ charts.heatmap | safe }}
+            </div>
+        </section>
+        {% endif %}
+
+        <!-- ── Pace Trend Regression ──────────── -->
+        {% if charts.regression %}
+        <section class="charts">
+            <h2>&#x1F4C8; Pace Trend Analysis</h2>
+            <p class="section-desc">
+                Linear regression reveals whether my pace is improving over time.
+                {% if regression %}
+                <span class="badge {{ 'badge-green' if regression.improving else 'badge-red' }}">
+                    {{ "Improving" if regression.improving else "Slowing" }}
+                    {{ regression.pace_change_per_month | abs }}s /500m per month
+                </span>
+                &middot; R&sup2; = {{ regression.r_squared }}
+                {% endif %}
+            </p>
+            <div class="chart-container">
+                {{ charts.regression | safe }}
+            </div>
+        </section>
+        {% endif %}
+
+        <!-- ── Workout Clustering ─────────────── -->
+        {% if charts.clustering %}
+        <section class="charts">
+            <h2>&#x1F3AF; Workout Clusters (K-Means)</h2>
+            <p class="section-desc">Machine learning groups my workouts into categories based on distance, pace, and duration.</p>
+
+            {% if clustering and clustering.cluster_profiles %}
+            <div class="cluster-profiles">
+                {% for c in clustering.cluster_profiles %}
+                <div class="cluster-card">
+                    <h4>{{ c.label }}</h4>
+                    <p><strong>{{ c.count }}</strong> workouts</p>
+                    <p>Avg {{ c.avg_distance | int }}m &middot; {{ c.avg_pace }} /500m &middot; {{ c.avg_duration_min }} min</p>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="chart-container">
+                {{ charts.clustering | safe }}
+            </div>
+        </section>
+        {% endif %}
+
+        <!-- ── Training Balance ───────────────── -->
+        {% if charts.cluster_pie %}
+        <section class="charts">
+            <h2>&#x1F4CA; Training Balance</h2>
+            <p class="section-desc">What percentage of my workouts fall into each category?</p>
+            <div class="chart-container">
+                {{ charts.cluster_pie | safe }}
+            </div>
+        </section>
+        {% endif %}
+
+        <!-- ── Machine Breakdown ──────────────── -->
+        {% if summary.machine_breakdown %}
+        <section class="breakdown">
+            <h2>Machine Breakdown</h2>
+            <ul>
+                {% for machine, count in summary.machine_breakdown.items() %}
+                <li><strong>{{ machine | capitalize }}</strong>: {{ count }} workouts</li>
+                {% endfor %}
+            </ul>
+        </section>
+        {% endif %}
+
+        <footer>
+            <p>Data from <a href="https://log.concept2.com" target="_blank">Concept2 Logbook</a>
+               &middot; Period: {{ summary.first_workout | default('–') }} to {{ summary.last_workout | default('–') }}</p>
+        </footer>
+    </div>
+</body>
+</html>

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Concept2 Rowing Analytics</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>&#x1F6A3; Concept2 Rowing Analytics</h1>
+            <p>Connect my Concept2 Logbook to view workout statistics and insights.</p>
+        </header>
+
+        <main>
+            {% if logged_in %}
+                <a href="/dashboard" class="btn btn-primary">Go to Dashboard</a>
+                <a href="/auth/logout" class="btn btn-secondary">Logout</a>
+            {% else %}
+                <a href="/auth/login" class="btn btn-primary">Login with Concept2</a>
+            {% endif %}
+        </main>
+
+        <footer>
+            <p>Powered by the <a href="https://log.concept2.com/developers/documentation/" target="_blank">Concept2 Logbook API</a></p>
+        </footer>
+    </div>
+</body>
+</html>
