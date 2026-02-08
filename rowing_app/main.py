@@ -95,7 +95,6 @@ async def dashboard(
     request: Request,
     from_date: Optional[str] = None,
     to_date: Optional[str] = None,
-    reg_model: Optional[str] = "both",
 ):
     """Main analytics dashboard."""
     token = request.session.get("access_token")
@@ -308,6 +307,7 @@ async def dashboard(
     if regression:
         import plotly.graph_objects as go
         fig_reg = go.Figure()
+        # Trace 0: Actual Pace
         fig_reg.add_trace(go.Scatter(
             x=regression["dates"], y=regression["paces"],
             mode="markers", name="Actual Pace",
@@ -315,18 +315,19 @@ async def dashboard(
             hovertemplate="Date: %{x}<br>Pace: %{text}<extra></extra>",
             text=regression["pace_formatted"],
         ))
-        if reg_model in ("linear", "both"):
-            fig_reg.add_trace(go.Scatter(
-                x=regression["dates"], y=regression["trend_y"],
-                mode="lines", name=f"Linear (R\u00b2={regression['r_squared']:.2f})",
-                line=dict(color="red", width=2, dash="dash"),
-            ))
-        if reg_model in ("poly", "both"):
-            fig_reg.add_trace(go.Scatter(
-                x=regression["dates"], y=regression["poly_y"],
-                mode="lines", name=f"Polynomial deg {regression['poly_degree']} (R\u00b2={regression['poly_r_squared']:.2f})",
-                line=dict(color="#9C27B0", width=2.5),
-            ))
+        # Trace 1: Linear
+        fig_reg.add_trace(go.Scatter(
+            x=regression["dates"], y=regression["trend_y"],
+            mode="lines", name=f"Linear (R\u00b2={regression['r_squared']:.2f})",
+            line=dict(color="red", width=2, dash="dash"),
+        ))
+        # Trace 2: Polynomial
+        fig_reg.add_trace(go.Scatter(
+            x=regression["dates"], y=regression["poly_y"],
+            mode="lines", name=f"Polynomial deg {regression['poly_degree']} (R\u00b2={regression['poly_r_squared']:.2f})",
+            line=dict(color="#9C27B0", width=2.5),
+        ))
+        # Trace 3: Rolling Avg
         fig_reg.add_trace(go.Scatter(
             x=regression["dates"], y=regression["rolling_avg"],
             mode="lines", name="10-workout Rolling Avg",
@@ -345,13 +346,8 @@ async def dashboard(
             showarrow=False, bgcolor="rgba(255,255,255,0.8)", bordercolor="#ccc",
             font=dict(size=12), align="left",
         )
-        title_map = {
-            "linear": "Pace Trend \u2014 Linear Regression",
-            "poly": "Pace Trend \u2014 Polynomial Regression",
-            "both": "Pace Trend \u2014 Linear & Polynomial Regression",
-        }
         fig_reg.update_layout(
-            title=title_map.get(reg_model, title_map["both"]),
+            title="Pace Trend \u2014 Linear & Polynomial Regression",
             xaxis_title="Date", yaxis_title="Pace /500m",
             yaxis=dict(tickvals=rtickv, ticktext=rtickt),
             template="plotly_white", height=500,
@@ -438,7 +434,6 @@ async def dashboard(
             "regression": regression,
             "from_date": from_date or "",
             "to_date": to_date or "",
-            "reg_model": reg_model or "both",
             "sync_info": sync_info,
         },
     )

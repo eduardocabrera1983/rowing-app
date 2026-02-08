@@ -145,30 +145,49 @@
                         {{ "Improving" if regression.improving else "Slowing" }}
                         {{ regression.pace_change_per_month | abs }}s /500m per month
                     </span>
-                    {% if reg_model in ['linear', 'both'] %}
-                    &middot; Linear R&sup2; = {{ regression.r_squared }}
-                    {% endif %}
-                    {% if reg_model in ['poly', 'both'] %}
-                    &middot; Poly R&sup2; = {{ regression.poly_r_squared }}
-                    {% endif %}
+                    <span id="r2-linear">&middot; Linear R&sup2; = {{ regression.r_squared }}</span>
+                    <span id="r2-poly">&middot; Poly R&sup2; = {{ regression.poly_r_squared }}</span>
                     {% endif %}
                 </p>
-                <form method="get" action="/dashboard" class="reg-filter">
-                    <input type="hidden" name="from_date" value="{{ from_date }}">
-                    <input type="hidden" name="to_date" value="{{ to_date }}">
-                    <label>Model:
-                        <select name="reg_model" onchange="this.form.submit()">
-                            <option value="both" {{ 'selected' if reg_model == 'both' }}>Both</option>
-                            <option value="linear" {{ 'selected' if reg_model == 'linear' }}>Linear</option>
-                            <option value="poly" {{ 'selected' if reg_model == 'poly' }}>Polynomial</option>
-                        </select>
-                    </label>
-                </form>
+                <label class="reg-filter">Model:
+                    <select id="reg-model-select">
+                        <option value="both" selected>Both</option>
+                        <option value="linear">Linear</option>
+                        <option value="poly">Polynomial</option>
+                    </select>
+                </label>
             </div>
-            <div class="chart-container">
+            <div class="chart-container" id="regression-chart-container">
                 {{ charts.regression | safe }}
             </div>
         </section>
+        <script>
+        (function() {
+            var sel = document.getElementById('reg-model-select');
+            var container = document.getElementById('regression-chart-container');
+            var r2Lin = document.getElementById('r2-linear');
+            var r2Poly = document.getElementById('r2-poly');
+
+            sel.addEventListener('change', function() {
+                var plotDiv = container.querySelector('.plotly-graph-div') || container.querySelector('[class*="plotly"]');
+                if (!plotDiv) return;
+                var val = sel.value;
+                // Traces: 0=Actual, 1=Linear, 2=Poly, 3=RollingAvg
+                var vis = {
+                    'both':   [true, true, true, true],
+                    'linear': [true, true, false, true],
+                    'poly':   [true, false, true, true],
+                };
+                var states = vis[val] || vis['both'];
+                for (var i = 0; i < states.length; i++) {
+                    Plotly.restyle(plotDiv, {visible: states[i]}, [i]);
+                }
+                // Toggle R² display
+                if (r2Lin) r2Lin.style.display = (val === 'poly') ? 'none' : '';
+                if (r2Poly) r2Poly.style.display = (val === 'linear') ? 'none' : '';
+            });
+        })();
+        </script>
         {% endif %}
 
         <!-- ── Workout Clustering ─────────────── -->
