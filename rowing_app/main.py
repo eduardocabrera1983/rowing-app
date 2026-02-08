@@ -88,7 +88,6 @@ async def dashboard(
     request: Request,
     from_date: Optional[str] = None,
     to_date: Optional[str] = None,
-    machine_type: Optional[str] = None,
 ):
     """Main analytics dashboard."""
     token = request.session.get("access_token")
@@ -103,7 +102,7 @@ async def dashboard(
         results = await client.get_all_results(
             from_date=from_date,
             to_date=to_date,
-            workout_type=machine_type,
+            workout_type="rower",
         )
     except Exception as e:
         logger.error(f"API error: {e}")
@@ -188,8 +187,8 @@ async def dashboard(
                 cmax=pace_max,
                 showscale=False,
             ),
-            customdata=pace_df[["pace_formatted", "type"]].values,
-            hovertemplate="Date: %{x}<br>Pace: %{customdata[0]}<br>Machine: %{customdata[1]}<extra></extra>",
+            customdata=pace_df[["pace_formatted"]].values,
+            hovertemplate="Date: %{x}<br>Pace: %{customdata[0]}<extra></extra>",
             showlegend=False,
         ))
 
@@ -407,7 +406,6 @@ async def dashboard(
             "regression": regression,
             "from_date": from_date or "",
             "to_date": to_date or "",
-            "machine_type": machine_type or "",
         },
     )
 

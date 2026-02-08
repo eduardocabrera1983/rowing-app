@@ -22,15 +22,6 @@
             <form method="get" action="/dashboard">
                 <label>From: <input type="date" name="from_date" value="{{ from_date }}"></label>
                 <label>To: <input type="date" name="to_date" value="{{ to_date }}"></label>
-                <label>Machine:
-                    <select name="machine_type">
-                        <option value="">All</option>
-                        <option value="rower" {{ 'selected' if machine_type == 'rower' }}>Rower</option>
-                        <option value="skierg" {{ 'selected' if machine_type == 'skierg' }}>SkiErg</option>
-                        <option value="bike" {{ 'selected' if machine_type == 'bike' }}>BikeErg</option>
-                        <option value="dynamic" {{ 'selected' if machine_type == 'dynamic' }}>Dynamic</option>
-                    </select>
-                </label>
                 <button type="submit" class="btn btn-primary btn-sm">Filter</button>
             </form>
         </section>
@@ -172,17 +163,7 @@
         </section>
         {% endif %}
 
-        <!-- ── Machine Breakdown ──────────────── -->
-        {% if summary.machine_breakdown %}
-        <section class="breakdown">
-            <h2>Machine Breakdown</h2>
-            <ul>
-                {% for machine, count in summary.machine_breakdown.items() %}
-                <li><strong>{{ machine | capitalize }}</strong>: {{ count }} workouts</li>
-                {% endfor %}
-            </ul>
-        </section>
-        {% endif %}
+
 
         <footer>
             <p>Data from <a href="https://log.concept2.com" target="_blank">Concept2 Logbook</a>

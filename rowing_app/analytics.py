@@ -63,7 +63,6 @@ def compute_summary(df: pd.DataFrame) -> dict[str, Any]:
         "avg_calories": round(df["calories"].mean(), 0) if df["calories"].notna().any() else "N/A",
         "first_workout": df["date"].min().strftime("%Y-%m-%d"),
         "last_workout": df["date"].max().strftime("%Y-%m-%d"),
-        "machine_breakdown": df["type"].value_counts().to_dict(),
         "workout_type_breakdown": df["workout_type"].value_counts().to_dict(),
     }
     return summary
