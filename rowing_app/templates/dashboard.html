@@ -17,6 +17,25 @@
             </nav>
         </header>
 
+        <!-- ── Sync Status ─────────────────── -->
+        {% if sync_info %}
+        <section class="sync-status">
+            <span class="sync-icon">{% if sync_info.synced %}&#x1F504;{% else %}&#x2705;{% endif %}</span>
+            <span>
+                {% if sync_info.synced %}
+                    Synced {{ sync_info.new_workouts }} new workout{{ 's' if sync_info.new_workouts != 1 }} from Concept2.
+                {% else %}
+                    Data is up to date.
+                {% endif %}
+                <strong>{{ sync_info.total_workouts }}</strong> workouts stored locally.
+                {% if sync_info.last_sync %}
+                    Last sync: {{ sync_info.last_sync[:19] | replace('T', ' ') }} UTC
+                {% endif %}
+            </span>
+            <a href="/sync/force" class="btn btn-secondary btn-sm" title="Force a full re-sync">&#x1F504; Sync Now</a>
+        </section>
+        {% endif %}
+
         <!-- ── Filters ────────────────────────── -->
         <section class="filters">
             <form method="get" action="/dashboard">
@@ -167,7 +186,8 @@
 
         <footer>
             <p>Data from <a href="https://log.concept2.com" target="_blank">Concept2 Logbook</a>
-               &middot; Period: {{ summary.first_workout | default('–') }} to {{ summary.last_workout | default('–') }}</p>
+               &middot; Period: {{ summary.first_workout | default('–') }} to {{ summary.last_workout | default('–') }}
+               &middot; Source: local database (syncs every 24h)</p>
         </footer>
     </div>
 </body>

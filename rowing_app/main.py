@@ -27,6 +27,7 @@ from .analytics import (
 from .api_client import Concept2Client
 from .auth import exchange_code_for_token, get_authorization_url, refresh_access_token
 from .config import settings
+from .database import init_db, load_workouts_as_models, sync_workouts, get_last_sync, get_workout_count, needs_sync
 
 # ──────────────────────────────────────────────
 # App setup
@@ -35,6 +36,12 @@ app = FastAPI(title="Concept2 Rowing Analytics", version="0.1.0")
 app.add_middleware(SessionMiddleware, secret_key=settings.app_secret_key)
 app.mount("/static", StaticFiles(directory="rowing_app/static"), name="static")
 templates = Jinja2Templates(directory="rowing_app/templates")
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialise the local SQLite database on app start."""
+    init_db()
 
 
 # ──────────────────────────────────────────────
@@ -97,12 +104,16 @@ async def dashboard(
     client = Concept2Client(access_token=token)
 
     try:
-        # Fetch user & results
+        # Fetch user profile (lightweight, always live)
         user_resp = await client.get_user()
-        results = await client.get_all_results(
+
+        # Sync local DB if needed (>24 h since last sync)
+        sync_info = await sync_workouts(client)
+
+        # Read workouts from local SQLite (instant)
+        results = load_workouts_as_models(
             from_date=from_date,
             to_date=to_date,
-            workout_type="rower",
         )
     except Exception as e:
         logger.error(f"API error: {e}")
@@ -406,6 +417,7 @@ async def dashboard(
             "regression": regression,
             "from_date": from_date or "",
             "to_date": to_date or "",
+            "sync_info": sync_info,
         },
     )
 
@@ -424,8 +436,7 @@ async def export_csv(request: Request):
     if not token:
         return RedirectResponse("/auth/login")
 
-    client = Concept2Client(access_token=token)
-    results = await client.get_all_results()
+    results = load_workouts_as_models()
     df = results_to_dataframe(results)
     df.to_csv("workouts.csv", index=False)
     logger.info(f"Exported {len(df)} workouts to workouts.csv")
@@ -434,6 +445,29 @@ async def export_csv(request: Request):
         "<p>You can now load this file in your Jupyter notebook.</p>"
         '<p><a href="/dashboard">← Back to Dashboard</a></p>'
     )
+
+
+@app.get("/sync/force")
+async def force_sync(request: Request):
+    """Force a full re-sync from the Concept2 API, bypassing the 24h check."""
+    token = request.session.get("access_token")
+    if not token:
+        return RedirectResponse("/auth/login")
+
+    client = Concept2Client(access_token=token)
+    # Fetch ALL workouts fresh
+    results = await client.get_all_results(workout_type="rower")
+
+    from .database import _get_connection, _upsert_workouts, _update_sync_meta
+    conn = _get_connection()
+    count = _upsert_workouts(conn, results)
+    _update_sync_meta(conn)
+    conn.commit()
+    total = conn.execute("SELECT COUNT(*) FROM workouts").fetchone()[0]
+    conn.close()
+
+    logger.info(f"Force sync: {count} workouts written, {total} total.")
+    return RedirectResponse("/dashboard")
 
 
 @app.get("/api/results")
@@ -447,8 +481,7 @@ async def api_results(
     if not token:
         return {"error": "Not authenticated"}, 401
 
-    client = Concept2Client(access_token=token)
-    results = await client.get_all_results(from_date=from_date, to_date=to_date)
+    results = load_workouts_as_models(from_date=from_date, to_date=to_date)
     return {"count": len(results), "data": [r.model_dump() for r in results]}
 
 
@@ -459,7 +492,6 @@ async def api_summary(request: Request):
     if not token:
         return {"error": "Not authenticated"}, 401
 
-    client = Concept2Client(access_token=token)
-    results = await client.get_all_results()
+    results = load_workouts_as_models()
     df = results_to_dataframe(results)
     return compute_summary(df)

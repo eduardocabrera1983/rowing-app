@@ -21,3 +21,4 @@ build/
 
 # Data exports
 workouts.csv
+workouts.db

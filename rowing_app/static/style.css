@@ -50,6 +50,23 @@ header nav { display: flex; align-items: center; gap: 1rem; }
 .btn-secondary { background: #ddd; color: #333; }
 .btn-sm { padding: 0.3rem 0.8rem; font-size: 0.85rem; }
 
+/* ── Sync Status ── */
+.sync-status {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.6rem 1rem;
+    margin-bottom: 1rem;
+    background: var(--c2-light);
+    border-left: 4px solid var(--c2-accent);
+    border-radius: var(--radius);
+    font-size: 0.85rem;
+    color: #555;
+}
+.sync-status .sync-icon { font-size: 1.1rem; }
+.sync-status strong { color: var(--c2-blue); }
+.sync-status .btn { margin-left: auto; white-space: nowrap; }
+
 /* ── Filters ── */
 .filters form {
     display: flex;
