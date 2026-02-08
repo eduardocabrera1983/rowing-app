@@ -169,12 +169,15 @@ async def dashboard(
         import plotly.graph_objects as go
         import numpy as np
         z_raw = heatmap["z_values"]
+        date_raw = heatmap["date_labels"]
         # Transpose: GitHub has weeks on X-axis, weekdays on Y-axis
         z_t = np.array(z_raw).T.tolist()  # shape: 7 days × N weeks
+        date_t = np.array(date_raw).T.tolist()  # matching shape
         weeks = heatmap["weeks"]
         days = heatmap["days"]  # ["Mon", "Tue", ..., "Sun"]
         # Reverse days so Mon is at the top (GitHub style)
         z_t = z_t[::-1]
+        date_t = date_t[::-1]
         days_reversed = days[::-1]
         num_weeks = len(weeks)
 
@@ -182,11 +185,12 @@ async def dashboard(
             z=z_t,
             x=weeks,            # X-axis: weeks (many columns)
             y=days_reversed,    # Y-axis: Mon–Sun (7 rows)
+            customdata=date_t,
             colorscale=[
                 [0.0, "#ebedf0"], [0.001, "#9be9a8"],
                 [0.25, "#40c463"], [0.5, "#30a14e"], [1.0, "#216e39"],
             ],
-            hovertemplate="Week: %{x}<br>Day: %{y}<br>Distance: %{z:,.0f}m<extra></extra>",
+            hovertemplate="Date: %{customdata}<br>Distance: %{z:,.0f}m<extra></extra>",
             colorbar=dict(title="Meters", thickness=10, len=0.5),
             xgap=4,
             ygap=4,
@@ -295,7 +299,7 @@ async def dashboard(
         fig_reg.add_trace(go.Scatter(
             x=regression["dates"], y=regression["rolling_avg"],
             mode="lines", name="10-workout Rolling Avg",
-            line=dict(color="#4CAF50", width=2),
+            line=dict(color="#03A9F4", width=2),
         ))
         # M:SS y-axis
         all_paces = [p for p in regression["paces"] if p is not None]

@@ -189,11 +189,19 @@ def training_heatmap_data(df: pd.DataFrame) -> dict[str, Any]:
         index="week_label", columns="weekday",
         values="total_meters", aggfunc="sum", fill_value=0,
     )
+    # Build a matching matrix of date strings for hover
+    daily_full["date_str"] = daily_full["day"].dt.strftime("%a %d %b %Y")
+    date_matrix = daily_full.pivot_table(
+        index="week_label", columns="weekday",
+        values="date_str", aggfunc="first", fill_value="",
+    )
     day_names = {1: "Mon", 2: "Tue", 3: "Wed", 4: "Thu", 5: "Fri", 6: "Sat", 7: "Sun"}
     matrix.rename(columns=day_names, inplace=True)
+    date_matrix.rename(columns=day_names, inplace=True)
 
     return {
         "z_values": matrix.values.tolist(),
+        "date_labels": date_matrix.values.tolist(),
         "weeks": matrix.index.tolist(),
         "days": matrix.columns.tolist(),
         "height": max(300, len(matrix) * 22),
