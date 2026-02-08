@@ -28,5 +28,8 @@ scikit-learn>=1.4.0
 # --- Rate limiting / retries ---
 tenacity>=8.2.3
 
+# --- Session middleware ---
+itsdangerous>=2.1.0
+
 # --- Logging ---
 loguru>=0.7.2
