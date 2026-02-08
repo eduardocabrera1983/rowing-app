@@ -103,6 +103,7 @@ header nav { display: flex; align-items: center; gap: 1rem; }
 }
 .card h3 { font-size: 0.85rem; color: #666; margin-bottom: 0.5rem; text-transform: uppercase; }
 .card .stat { font-size: 1.6rem; font-weight: 700; color: var(--c2-blue); }
+.card .stat-warn { color: #d35400; }
 
 /* ── Personal Bests ── */
 .personal-bests { margin-bottom: 2rem; }
