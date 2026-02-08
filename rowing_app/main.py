@@ -164,74 +164,6 @@ async def dashboard(
         fig_weekly.update_layout(template="plotly_white")
         charts["weekly_distance"] = pio.to_html(fig_weekly, full_html=False)
 
-    if not df.empty and df["pace_500m"].notna().any():
-        pace_df = df[df["pace_500m"].notna()].copy()
-        pace_df["pace_formatted"] = pace_df["pace_500m"].apply(
-            lambda s: f"{int(s // 60)}:{s % 60:04.1f}"
-        )
-        import plotly.graph_objects as go
-
-        # Color data points: green up to 2:40, then yellow, then red
-        pace_min = pace_df["pace_500m"].min()
-        pace_max = pace_df["pace_500m"].max()
-        pace_range = pace_max - pace_min if pace_max > pace_min else 1
-        # Normalize the 2:40 (160s) threshold within the data range
-        green_threshold = min(max((160 - pace_min) / pace_range, 0), 1)
-        yellow_threshold = min(green_threshold + 0.1, 1)
-        colorscale = [
-            [0, "green"],
-            [green_threshold, "green"],
-            [yellow_threshold, "gold"],
-            [1, "red"],
-        ]
-
-        fig_pace = go.Figure()
-        fig_pace.add_trace(go.Scatter(
-            x=pace_df["date"],
-            y=pace_df["pace_500m"],
-            mode="markers",
-            marker=dict(
-                size=8,
-                color=pace_df["pace_500m"],
-                colorscale=colorscale,
-                cmin=pace_min,
-                cmax=pace_max,
-                showscale=False,
-            ),
-            customdata=pace_df[["pace_formatted"]].values,
-            hovertemplate="Date: %{x}<br>Pace: %{customdata[0]}<extra></extra>",
-            showlegend=False,
-        ))
-
-        # Reference dots: green = Faster, red = Slower
-        fig_pace.add_trace(go.Scatter(
-            x=[None], y=[None], mode="markers",
-            marker=dict(size=10, color="green"),
-            name="Faster",
-        ))
-        fig_pace.add_trace(go.Scatter(
-            x=[None], y=[None], mode="markers",
-            marker=dict(size=10, color="red"),
-            name="Slower",
-        ))
-
-        # Format Y-axis tick labels as M:SS, snapped to round 5-second intervals
-        min_pace = (int(pace_df["pace_500m"].min()) // 5) * 5
-        max_pace = ((int(pace_df["pace_500m"].max()) // 5) + 1) * 5
-        tickvals = list(range(min_pace, max_pace + 1, 5))
-        ticktext = [f"{v // 60}:{v % 60:02d}" for v in tickvals]
-        fig_pace.update_layout(
-            template="plotly_white",
-            height=500,
-            title="Pace /500m Over Time",
-            xaxis_title="Date",
-            yaxis_title="Pace /500m",
-            yaxis=dict(tickvals=tickvals, ticktext=ticktext, dtick=5),
-            legend=dict(x=1.02, y=0.5, font=dict(size=13)),
-            margin=dict(r=120),
-        )
-        charts["pace_trend"] = pio.to_html(fig_pace, full_html=False)
-
     # ── Training Heatmap (GitHub-style) ───────────
     if heatmap:
         import plotly.graph_objects as go
@@ -306,28 +238,60 @@ async def dashboard(
     # ── Pace Trend Regression ─────────────────────
     if regression:
         import plotly.graph_objects as go
+        # Build gradient colorscale: green (faster) → gold → red (slower)
+        paces_arr = regression["paces"]
+        pace_min = min(paces_arr)
+        pace_max = max(paces_arr)
+        pace_range = pace_max - pace_min if pace_max > pace_min else 1
+        green_threshold = min(max((160 - pace_min) / pace_range, 0), 1)
+        yellow_threshold = min(green_threshold + 0.1, 1)
+        colorscale = [
+            [0, "green"],
+            [green_threshold, "green"],
+            [yellow_threshold, "gold"],
+            [1, "red"],
+        ]
         fig_reg = go.Figure()
-        # Trace 0: Actual Pace
+        # Trace 0: Actual Pace (gradient-colored dots)
         fig_reg.add_trace(go.Scatter(
             x=regression["dates"], y=regression["paces"],
             mode="markers", name="Actual Pace",
-            marker=dict(size=6, color="#2196F3", opacity=0.6),
+            marker=dict(
+                size=8,
+                color=paces_arr,
+                colorscale=colorscale,
+                cmin=pace_min,
+                cmax=pace_max,
+                showscale=False,
+            ),
             hovertemplate="Date: %{x}<br>Pace: %{text}<extra></extra>",
             text=regression["pace_formatted"],
         ))
-        # Trace 1: Linear
+        # Trace 1 (invisible legend ref): Faster
+        fig_reg.add_trace(go.Scatter(
+            x=[None], y=[None], mode="markers",
+            marker=dict(size=10, color="green"),
+            name="Faster",
+        ))
+        # Trace 2 (invisible legend ref): Slower
+        fig_reg.add_trace(go.Scatter(
+            x=[None], y=[None], mode="markers",
+            marker=dict(size=10, color="red"),
+            name="Slower",
+        ))
+        # Trace 3: Linear
         fig_reg.add_trace(go.Scatter(
             x=regression["dates"], y=regression["trend_y"],
             mode="lines", name=f"Linear (R\u00b2={regression['r_squared']:.2f})",
             line=dict(color="red", width=2, dash="dash"),
         ))
-        # Trace 2: Polynomial
+        # Trace 4: Polynomial
         fig_reg.add_trace(go.Scatter(
             x=regression["dates"], y=regression["poly_y"],
             mode="lines", name=f"Polynomial deg {regression['poly_degree']} (R\u00b2={regression['poly_r_squared']:.2f})",
             line=dict(color="#9C27B0", width=2.5),
         ))
-        # Trace 3: Rolling Avg
+        # Trace 5: Rolling Avg
         fig_reg.add_trace(go.Scatter(
             x=regression["dates"], y=regression["rolling_avg"],
             mode="lines", name="10-workout Rolling Avg",

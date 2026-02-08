@@ -115,11 +115,7 @@
             </div>
             {% endif %}
 
-            {% if charts.pace_trend %}
-            <div class="chart-container">
-                {{ charts.pace_trend | safe }}
-            </div>
-            {% endif %}
+
         </section>
 
         <!-- ── Training Heatmap ───────────────── -->
@@ -172,11 +168,11 @@
                 var plotDiv = container.querySelector('.plotly-graph-div') || container.querySelector('[class*="plotly"]');
                 if (!plotDiv) return;
                 var val = sel.value;
-                // Traces: 0=Actual, 1=Linear, 2=Poly, 3=RollingAvg
+                // Traces: 0=Actual(dots), 1=Faster(legend), 2=Slower(legend), 3=Linear, 4=Poly, 5=RollingAvg
                 var vis = {
-                    'both':   [true, true, true, true],
-                    'linear': [true, true, false, true],
-                    'poly':   [true, false, true, true],
+                    'both':   [true, true, true, true, true, true],
+                    'linear': [true, true, true, true, false, true],
+                    'poly':   [true, true, true, false, true, true],
                 };
                 var states = vis[val] || vis['both'];
                 for (var i = 0; i < states.length; i++) {
