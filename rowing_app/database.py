@@ -20,8 +20,10 @@ from loguru import logger
 from .api_client import Concept2Client
 from .models import WorkoutResult
 
-# Default DB path (project root)
-DB_PATH = Path(__file__).resolve().parent.parent / "workouts.db"
+import os
+
+# Default DB path – overridable via DB_PATH env var (used in Docker)
+DB_PATH = Path(os.environ.get("DB_PATH", Path(__file__).resolve().parent.parent / "workouts.db"))
 
 SYNC_INTERVAL = timedelta(hours=24)
 

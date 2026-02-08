@@ -1,0 +1,54 @@
+services:
+  rowing-app:
+    build: .
+    container_name: concept2-rowing-app
+    env_file:
+      - .env
+    environment:
+      - DB_PATH=/app/data/workouts.db
+      - APP_PORT=8000
+      - APP_DEBUG=false
+    volumes:
+      - app-data:/app/data
+    restart: unless-stopped
+    networks:
+      - app-net
+
+  nginx:
+    image: nginx:alpine
+    container_name: nginx-proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - certbot-etc:/etc/letsencrypt:ro
+      - certbot-var:/var/lib/letsencrypt
+      - certbot-www:/var/www/certbot:ro
+    depends_on:
+      - rowing-app
+    restart: unless-stopped
+    networks:
+      - app-net
+
+  certbot:
+    image: certbot/certbot
+    container_name: certbot
+    volumes:
+      - certbot-etc:/etc/letsencrypt
+      - certbot-var:/var/lib/letsencrypt
+      - certbot-www:/var/www/certbot
+    # Auto-renew every 12 hours
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew --quiet; sleep 12h & wait $${!}; done;'"
+    networks:
+      - app-net
+
+volumes:
+  app-data:
+  certbot-etc:
+  certbot-var:
+  certbot-www:
+
+networks:
+  app-net:
+    driver: bridge

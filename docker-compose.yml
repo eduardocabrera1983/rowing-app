@@ -1,11 +1,20 @@
+# ── Local Development ──
 services:
   rowing-app:
     build: .
-    container_name: concept2-rowing-app
+    container_name: concept2-rowing-app-dev
     ports:
-      - "8000:8000"
+      - "8080:8000"
     env_file:
       - .env
+    environment:
+      - DB_PATH=/app/data/workouts.db
+      - APP_DEBUG=true
     volumes:
-      - .:/app
+      - ./rowing_app:/app/rowing_app   # hot-reload source
+      - app-data:/app/data             # persist SQLite
     restart: unless-stopped
+    command: ["uvicorn", "rowing_app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+volumes:
+  app-data:
