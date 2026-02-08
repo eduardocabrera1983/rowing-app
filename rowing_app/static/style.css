@@ -137,6 +137,23 @@ header nav { display: flex; align-items: center; gap: 1rem; }
 .badge-green { background: #d4edda; color: #155724; }
 .badge-red   { background: #f8d7da; color: #721c24; }
 
+/* ── Regression Controls ── */
+.regression-controls {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+.regression-controls .section-desc { flex: 1; }
+.reg-filter { display: flex; align-items: center; gap: 0.5rem; }
+.reg-filter select {
+    padding: 0.25rem 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: var(--radius);
+    font-size: 0.85rem;
+}
+
 /* ── Cluster Profile Cards ── */
 .cluster-profiles {
     display: grid;

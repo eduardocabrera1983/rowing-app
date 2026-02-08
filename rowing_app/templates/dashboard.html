@@ -137,17 +137,34 @@
         {% if charts.regression %}
         <section class="charts">
             <h2>&#x1F4C8; Pace Trend Analysis</h2>
-            <p class="section-desc">
-                Regression analysis reveals whether my pace is improving over time.
-                {% if regression %}
-                <span class="badge {{ 'badge-green' if regression.improving else 'badge-red' }}">
-                    {{ "Improving" if regression.improving else "Slowing" }}
-                    {{ regression.pace_change_per_month | abs }}s /500m per month
-                </span>
-                &middot; Linear R&sup2; = {{ regression.r_squared }}
-                &middot; Poly R&sup2; = {{ regression.poly_r_squared }}
-                {% endif %}
-            </p>
+            <div class="regression-controls">
+                <p class="section-desc">
+                    Regression analysis reveals whether my pace is improving over time.
+                    {% if regression %}
+                    <span class="badge {{ 'badge-green' if regression.improving else 'badge-red' }}">
+                        {{ "Improving" if regression.improving else "Slowing" }}
+                        {{ regression.pace_change_per_month | abs }}s /500m per month
+                    </span>
+                    {% if reg_model in ['linear', 'both'] %}
+                    &middot; Linear R&sup2; = {{ regression.r_squared }}
+                    {% endif %}
+                    {% if reg_model in ['poly', 'both'] %}
+                    &middot; Poly R&sup2; = {{ regression.poly_r_squared }}
+                    {% endif %}
+                    {% endif %}
+                </p>
+                <form method="get" action="/dashboard" class="reg-filter">
+                    <input type="hidden" name="from_date" value="{{ from_date }}">
+                    <input type="hidden" name="to_date" value="{{ to_date }}">
+                    <label>Model:
+                        <select name="reg_model" onchange="this.form.submit()">
+                            <option value="both" {{ 'selected' if reg_model == 'both' }}>Both</option>
+                            <option value="linear" {{ 'selected' if reg_model == 'linear' }}>Linear</option>
+                            <option value="poly" {{ 'selected' if reg_model == 'poly' }}>Polynomial</option>
+                        </select>
+                    </label>
+                </form>
+            </div>
             <div class="chart-container">
                 {{ charts.regression | safe }}
             </div>
