@@ -51,7 +51,7 @@
                 <p class="stat">{{ summary.last_workout_display | default('–') }}</p>
             </div>
             <div class="card">
-                <h3>Days Since Last</h3>
+                <h3>Days Since Last Workout</h3>
                 <p class="stat{% if summary.days_since_last is defined and summary.days_since_last > 3 %} stat-warn{% endif %}">{{ summary.days_since_last | default('–') }}{% if summary.days_since_last is defined %} day{{ 's' if summary.days_since_last != 1 }}{% endif %}</p>
             </div>
             <div class="card">                <h3>Total Workouts</h3>
