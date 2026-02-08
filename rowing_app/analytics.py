@@ -284,17 +284,16 @@ def workout_clustering(df: pd.DataFrame, n_clusters: int = 4) -> dict[str, Any]:
 
     cluster_profiles = []
     for idx, row in stats.iterrows():
-        # Auto-label
-        if row["avg_distance"] < 3000 and row["avg_pace"] < 130:
-            label = "Sprint / Speed Test"
-        elif row["avg_distance"] < 3000:
-            label = "Short Workout"
-        elif row["avg_distance"] > 10000:
-            label = "Long Endurance"
-        elif row["avg_pace"] < 130:
-            label = "Fast Medium-Distance"
+        # Auto-label based on distance thresholds
+        avg_dist = row["avg_distance"]
+        if avg_dist < 2000:
+            label = "Sprint"
+        elif avg_dist < 7500:
+            label = "5K Steady-State"
+        elif avg_dist <= 12000:
+            label = "10K Steady-State"
         else:
-            label = "Steady-State"
+            label = "Long Endurance"
 
         cluster_profiles.append({
             "id": int(idx),
@@ -304,6 +303,9 @@ def workout_clustering(df: pd.DataFrame, n_clusters: int = 4) -> dict[str, Any]:
             "avg_pace": _format_pace(row["avg_pace"]),
             "avg_duration_min": round(row["avg_duration_min"]),
         })
+
+    # Sort clusters by average distance (Sprint → 5K → 10K → Long)
+    cluster_profiles.sort(key=lambda p: stats.loc[p["id"], "avg_distance"])
 
     # Scatter data for chart
     scatter_data = []

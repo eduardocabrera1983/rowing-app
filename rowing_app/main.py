@@ -350,7 +350,14 @@ async def dashboard(
     if clustering:
         import plotly.graph_objects as go
         from plotly.subplots import make_subplots
-        cluster_colors = ["#2196F3", "#FF5722", "#4CAF50", "#FFC107", "#9C27B0", "#00BCD4"]
+        # Fixed colors mapped to labels (left→right = Sprint → Long)
+        label_colors = {
+            "Sprint": "#FFC107",
+            "5K Steady-State": "#2196F3",
+            "10K Steady-State": "#FF5722",
+            "Long Endurance": "#4CAF50",
+        }
+        fallback_colors = ["#9C27B0", "#00BCD4", "#E91E63", "#795548"]
 
         # Cluster scatter (Distance vs Pace)
         fig_cl = make_subplots(
@@ -358,10 +365,11 @@ async def dashboard(
             subplot_titles=["Distance vs Pace", "Distance vs Duration"],
             horizontal_spacing=0.12,
         )
-        for profile in clustering["cluster_profiles"]:
+        # Profiles are already sorted by distance in analytics.py
+        for i, profile in enumerate(clustering["cluster_profiles"]):
             cid = profile["id"]
             pts = [p for p in clustering["scatter_data"] if p["cluster"] == cid]
-            color = cluster_colors[cid % len(cluster_colors)]
+            color = label_colors.get(profile["label"], fallback_colors[i % len(fallback_colors)])
             dists = [p["distance"] for p in pts]
             paces = [p["pace"] for p in pts]
             tmins = [p["time_min"] for p in pts]
@@ -396,7 +404,7 @@ async def dashboard(
         # Pie chart for training balance
         labels = [p["label"] for p in clustering["cluster_profiles"]]
         counts = [p["count"] for p in clustering["cluster_profiles"]]
-        colors_pie = [cluster_colors[p["id"] % len(cluster_colors)] for p in clustering["cluster_profiles"]]
+        colors_pie = [label_colors.get(p["label"], "#999") for p in clustering["cluster_profiles"]]
         fig_pie = go.Figure(data=[go.Pie(
             labels=labels, values=counts,
             marker=dict(colors=colors_pie),
