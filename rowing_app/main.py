@@ -316,8 +316,13 @@ async def dashboard(
         ))
         fig_reg.add_trace(go.Scatter(
             x=regression["dates"], y=regression["trend_y"],
-            mode="lines", name=f"Trend (R²={regression['r_squared']:.2f})",
+            mode="lines", name=f"Linear (R\u00b2={regression['r_squared']:.2f})",
             line=dict(color="red", width=2, dash="dash"),
+        ))
+        fig_reg.add_trace(go.Scatter(
+            x=regression["dates"], y=regression["poly_y"],
+            mode="lines", name=f"Polynomial deg {regression['poly_degree']} (R\u00b2={regression['poly_r_squared']:.2f})",
+            line=dict(color="#9C27B0", width=2.5),
         ))
         fig_reg.add_trace(go.Scatter(
             x=regression["dates"], y=regression["rolling_avg"],
@@ -338,7 +343,7 @@ async def dashboard(
             font=dict(size=12), align="left",
         )
         fig_reg.update_layout(
-            title="Pace Trend — Linear Regression",
+            title="Pace Trend — Linear & Polynomial Regression",
             xaxis_title="Date", yaxis_title="Pace /500m",
             yaxis=dict(tickvals=rtickv, ticktext=rtickt),
             template="plotly_white", height=500,

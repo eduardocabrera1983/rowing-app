@@ -138,13 +138,14 @@
         <section class="charts">
             <h2>&#x1F4C8; Pace Trend Analysis</h2>
             <p class="section-desc">
-                Linear regression reveals whether my pace is improving over time.
+                Regression analysis reveals whether my pace is improving over time.
                 {% if regression %}
                 <span class="badge {{ 'badge-green' if regression.improving else 'badge-red' }}">
                     {{ "Improving" if regression.improving else "Slowing" }}
                     {{ regression.pace_change_per_month | abs }}s /500m per month
                 </span>
-                &middot; R&sup2; = {{ regression.r_squared }}
+                &middot; Linear R&sup2; = {{ regression.r_squared }}
+                &middot; Poly R&sup2; = {{ regression.poly_r_squared }}
                 {% endif %}
             </p>
             <div class="chart-container">

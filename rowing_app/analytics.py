@@ -204,10 +204,10 @@ def training_heatmap_data(df: pd.DataFrame) -> dict[str, Any]:
 # Pace Trend Regression
 # ──────────────────────────────────────────────
 def pace_trend_regression(df: pd.DataFrame) -> dict[str, Any]:
-    """Fit a linear regression on pace over time and compute a rolling average.
+    """Fit linear and polynomial regression on pace over time.
 
-    Returns dict with keys: dates, paces, trend_y, rolling_avg,
-    slope, r_squared, pace_change_per_month, improving.
+    Returns dict with keys: dates, paces, trend_y, poly_y, rolling_avg,
+    slope, r_squared, poly_r_squared, pace_change_per_month, improving.
     """
     if df.empty or not df["pace_500m"].notna().any():
         return {}
@@ -219,6 +219,7 @@ def pace_trend_regression(df: pd.DataFrame) -> dict[str, Any]:
     x = pace_df["days_since_start"].values
     y = pace_df["pace_500m"].values
 
+    # Linear regression (degree 1)
     coefficients = np.polyfit(x, y, deg=1)
     slope, intercept = coefficients[0], coefficients[1]
     trend_y = np.polyval(coefficients, x)
@@ -227,6 +228,14 @@ def pace_trend_regression(df: pd.DataFrame) -> dict[str, Any]:
     ss_tot = np.sum((y - np.mean(y)) ** 2)
     r_squared = 1 - (ss_res / ss_tot) if ss_tot > 0 else 0
 
+    # Polynomial regression (degree 3)
+    poly_deg = 3
+    poly_coeffs = np.polyfit(x, y, deg=poly_deg)
+    poly_y = np.polyval(poly_coeffs, x)
+
+    ss_res_poly = np.sum((y - poly_y) ** 2)
+    poly_r_squared = 1 - (ss_res_poly / ss_tot) if ss_tot > 0 else 0
+
     rolling_avg = pace_df["pace_500m"].rolling(window=10, min_periods=3).mean()
 
     return {
@@ -234,9 +243,12 @@ def pace_trend_regression(df: pd.DataFrame) -> dict[str, Any]:
         "paces": y.tolist(),
         "pace_formatted": [f"{int(s // 60)}:{s % 60:04.1f}" for s in y],
         "trend_y": trend_y.tolist(),
+        "poly_y": poly_y.tolist(),
         "rolling_avg": [None if pd.isna(v) else round(v, 2) for v in rolling_avg],
         "slope": round(slope, 4),
         "r_squared": round(r_squared, 3),
+        "poly_r_squared": round(poly_r_squared, 3),
+        "poly_degree": poly_deg,
         "pace_change_per_month": round(slope * 30, 2),
         "improving": slope < 0,
     }
