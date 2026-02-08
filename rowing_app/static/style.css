@@ -1,4 +1,4 @@
-/* ── Concept2 Rowing Analytics – Styles ── */
+﻿/* ÔöÇÔöÇ Concept2 Rowing Analytics ÔÇô Styles ÔöÇÔöÇ */
 
 :root {
     --c2-blue: #003366;
@@ -22,7 +22,7 @@ body {
     padding: 2rem 1rem;
 }
 
-/* ── Header ── */
+/* ÔöÇÔöÇ Header ÔöÇÔöÇ */
 header {
     display: flex;
     justify-content: space-between;
@@ -34,7 +34,7 @@ header {
 header h1 { color: var(--c2-blue); }
 header nav { display: flex; align-items: center; gap: 1rem; }
 
-/* ── Buttons ── */
+/* ÔöÇÔöÇ Buttons ÔöÇÔöÇ */
 .btn {
     display: inline-block;
     padding: 0.6rem 1.4rem;
@@ -50,7 +50,7 @@ header nav { display: flex; align-items: center; gap: 1rem; }
 .btn-secondary { background: #ddd; color: #333; }
 .btn-sm { padding: 0.3rem 0.8rem; font-size: 0.85rem; }
 
-/* ── Sync Status ── */
+/* ÔöÇÔöÇ Sync Status ÔöÇÔöÇ */
 .sync-status {
     display: flex;
     align-items: center;
@@ -67,7 +67,7 @@ header nav { display: flex; align-items: center; gap: 1rem; }
 .sync-status strong { color: var(--c2-blue); }
 .sync-status .btn { margin-left: auto; white-space: nowrap; }
 
-/* ── Filters ── */
+/* ÔöÇÔöÇ Filters ÔöÇÔöÇ */
 .filters form {
     display: flex;
     gap: 1rem;
@@ -87,7 +87,7 @@ header nav { display: flex; align-items: center; gap: 1rem; }
     margin-top: 0.2rem;
 }
 
-/* ── Summary Cards ── */
+/* ÔöÇÔöÇ Summary Cards ÔöÇÔöÇ */
 .summary-cards {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
@@ -105,7 +105,7 @@ header nav { display: flex; align-items: center; gap: 1rem; }
 .card .stat { font-size: 1.6rem; font-weight: 700; color: var(--c2-blue); }
 .card .stat-warn { color: #d35400; }
 
-/* ── Personal Bests ── */
+/* ÔöÇÔöÇ Personal Bests ÔöÇÔöÇ */
 .personal-bests { margin-bottom: 2rem; }
 .personal-bests h2 { color: var(--c2-blue); margin-bottom: 1rem; }
 .personal-bests table { width: 100%; border-collapse: collapse; background: #fff; border-radius: var(--radius); overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
@@ -113,7 +113,7 @@ header nav { display: flex; align-items: center; gap: 1rem; }
 .personal-bests th { background: var(--c2-blue); color: #fff; }
 .personal-bests tr:nth-child(even) { background: var(--c2-light); }
 
-/* ── Charts ── */
+/* ÔöÇÔöÇ Charts ÔöÇÔöÇ */
 .charts { margin-bottom: 2rem; }
 .charts h2 { color: var(--c2-blue); margin-bottom: 0.3rem; }
 .section-desc { color: #666; font-size: 0.9rem; margin-bottom: 1rem; }
@@ -126,7 +126,7 @@ header nav { display: flex; align-items: center; gap: 1rem; }
     overflow-x: auto;  /* allow horizontal scroll for wide charts like heatmap */
 }
 
-/* ── Badges (improving / slowing) ── */
+/* ÔöÇÔöÇ Badges (improving / slowing) ÔöÇÔöÇ */
 .badge {
     display: inline-block;
     padding: 0.15rem 0.6rem;
@@ -137,7 +137,7 @@ header nav { display: flex; align-items: center; gap: 1rem; }
 .badge-green { background: #d4edda; color: #155724; }
 .badge-red   { background: #f8d7da; color: #721c24; }
 
-/* ── Regression Controls ── */
+/* ÔöÇÔöÇ Regression Controls ÔöÇÔöÇ */
 .regression-controls {
     display: flex;
     align-items: baseline;
@@ -154,7 +154,7 @@ header nav { display: flex; align-items: center; gap: 1rem; }
     font-size: 0.85rem;
 }
 
-/* ── Cluster Profile Cards ── */
+/* ÔöÇÔöÇ Cluster Profile Cards ÔöÇÔöÇ */
 .cluster-profiles {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -171,12 +171,12 @@ header nav { display: flex; align-items: center; gap: 1rem; }
 .cluster-card h4 { color: var(--c2-blue); margin-bottom: 0.3rem; }
 .cluster-card p { font-size: 0.85rem; color: #555; margin: 0.15rem 0; }
 
-/* ── Breakdown ── */
+/* ÔöÇÔöÇ Breakdown ÔöÇÔöÇ */
 .breakdown { margin-bottom: 2rem; }
 .breakdown h2 { color: var(--c2-blue); margin-bottom: 0.5rem; }
 .breakdown ul { list-style: none; }
 .breakdown li { padding: 0.3rem 0; }
 
-/* ── Footer ── */
+/* ÔöÇÔöÇ Footer ÔöÇÔöÇ */
 footer { text-align: center; padding-top: 2rem; color: #888; font-size: 0.85rem; }
 footer a { color: var(--c2-accent); }

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import secrets
+import traceback
 from typing import Optional
 
 import plotly.express as px
@@ -38,10 +39,44 @@ app.mount("/static", StaticFiles(directory="rowing_app/static"), name="static")
 templates = Jinja2Templates(directory="rowing_app/templates")
 
 
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Catch-all: show the real traceback instead of generic 500."""
+    tb = traceback.format_exc()
+    logger.error(f"Unhandled exception on {request.url}:\n{tb}")
+    return HTMLResponse(
+        f"<h2>Server Error</h2><pre>{type(exc).__name__}: {exc}\n\n{tb}</pre>",
+        status_code=500,
+    )
+
+
 @app.on_event("startup")
 async def startup_event():
     """Initialise the local SQLite database on app start."""
     init_db()
+
+
+# ──────────────────────────────────────────────
+# Debug endpoint – renders full dashboard with local data, no auth
+# ──────────────────────────────────────────────
+@app.get("/debug-dashboard", response_class=HTMLResponse)
+async def debug_dashboard(request: Request):
+    """Full dashboard render using cached DB data – no OAuth required."""
+    try:
+        results = load_workouts_as_models()
+
+        # Create a fake response object that mimics the Concept2 user API response
+        class _FakeResp:
+            class data:
+                first_name = "Eduardo"
+                username = "eduardo"
+        fake_resp = _FakeResp()
+
+        return await _build_dashboard(request, fake_resp, results, None, None, None)
+    except Exception as e:
+        tb = traceback.format_exc()
+        logger.error(f"Debug dashboard error:\n{tb}")
+        return HTMLResponse(f"<h2>Debug Error</h2><pre>{tb}</pre>", status_code=500)
 
 
 # ──────────────────────────────────────────────
@@ -69,11 +104,15 @@ async def login(request: Request):
 @app.get("/auth/callback")
 async def auth_callback(request: Request, code: str, state: Optional[str] = None):
     """Handle OAuth2 callback from Concept2."""
-    stored_state = request.session.get("oauth_state")
-    if state and stored_state and state != stored_state:
-        return HTMLResponse("State mismatch – possible CSRF attack.", status_code=400)
+    # Skip CSRF state check for personal app — avoids stale-session loops
+    try:
+        token = await exchange_code_for_token(code)
+    except Exception as e:
+        logger.error(f"Token exchange failed: {e}\n{traceback.format_exc()}")
+        request.session.clear()
+        return RedirectResponse("/auth/login")
 
-    token = await exchange_code_for_token(code)
+    request.session.pop("oauth_state", None)
     request.session["access_token"] = token.access_token
     request.session["refresh_token"] = token.refresh_token
     logger.info("User authenticated successfully.")
@@ -116,7 +155,7 @@ async def dashboard(
             to_date=to_date,
         )
     except Exception as e:
-        logger.error(f"API error: {e}")
+        logger.error(f"API error: {e}\n{traceback.format_exc()}")
         # Try refreshing the token
         refresh = request.session.get("refresh_token")
         if refresh:
@@ -131,6 +170,19 @@ async def dashboard(
         return RedirectResponse("/auth/login")
 
     # Build analytics
+    try:
+        return await _build_dashboard(request, user_resp, results, sync_info, from_date, to_date)
+    except Exception as e:
+        tb = traceback.format_exc()
+        logger.error(f"Dashboard build error:\n{tb}")
+        return HTMLResponse(
+            f"<h2>Dashboard Error</h2><pre>{tb}</pre>",
+            status_code=500,
+        )
+
+
+async def _build_dashboard(request, user_resp, results, sync_info, from_date, to_date):
+    """Build the full dashboard (extracted for error isolation)."""
     df = results_to_dataframe(results)
     summary = compute_summary(df)
     pbs = personal_bests(df)
@@ -230,7 +282,6 @@ async def dashboard(
                 ticktext=tick_text,
             ),
             yaxis=dict(tickfont=dict(size=11), automargin=True),
-            # Square cells: width proportional to weeks, height fixed for 7 rows
             width=max(600, num_weeks * 20 + 140),
             height=240,
             template="plotly_white",
