@@ -266,21 +266,27 @@ def pace_trend_regression(df: pd.DataFrame) -> dict[str, Any]:
 # Workout Clustering (K-Means)
 # ──────────────────────────────────────────────
 def workout_clustering(df: pd.DataFrame, n_clusters: int = 4) -> dict[str, Any]:
-    """Cluster workouts by distance, pace, and duration using K-Means.
+    """Cluster workouts using K-Means, then present distance-based category profiles.
 
-    Returns dict with keys: cluster_data, cluster_stats, elbow_data.
+    K-Means clusters data in 3-D feature space (distance, pace, duration) for the
+    scatter visualisation.  Profile cards use fixed distance-bucket categories so
+    they always show the user's 5 business-relevant tiers.
+
+    Returns dict with keys: scatter_data, cluster_profiles, category_profiles,
+    elbow_k, elbow_inertias, n_clusters.
     """
     features = ["distance_m", "pace_500m", "time_seconds"]
-    cluster_df = df[features].dropna().copy()
+    extra_cols = ["stroke_rate", "calories"]
+    cluster_df = df[features + extra_cols].dropna(subset=features).copy()
 
     if len(cluster_df) < n_clusters:
         return {}
 
-    # Scale features
+    # ── Scale features (only the 3 core features — extras may have NaN) ──
     scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(cluster_df)
+    X_scaled = scaler.fit_transform(cluster_df[features])
 
-    # Elbow method (K=2..8)
+    # ── Elbow method (K=2..8) ──
     k_range = range(2, min(9, len(cluster_df)))
     inertias = []
     for k in k_range:
@@ -288,13 +294,13 @@ def workout_clustering(df: pd.DataFrame, n_clusters: int = 4) -> dict[str, Any]:
         km.fit(X_scaled)
         inertias.append(round(km.inertia_, 1))
 
-    # Final clustering
+    # ── Final K-Means clustering ──
     n_clusters = min(n_clusters, len(cluster_df))
     kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
     kmeans.fit(X_scaled)
     cluster_df["cluster"] = kmeans.labels_
 
-    # Cluster profiles
+    # ── K-Means cluster profiles (for scatter chart legend) ──
     stats = cluster_df.groupby("cluster").agg(
         avg_distance=("distance_m", "mean"),
         avg_pace=("pace_500m", "mean"),
@@ -302,44 +308,98 @@ def workout_clustering(df: pd.DataFrame, n_clusters: int = 4) -> dict[str, Any]:
         count=("distance_m", "count"),
     ).round(1)
 
+    def _label_for_centroid(avg_dist: float) -> str:
+        if avg_dist < 4000:
+            return "Sprint"
+        elif avg_dist < 6500:
+            return "5K Steady-State"
+        elif avg_dist < 8500:
+            return "Mid-Distance (5-10K)"
+        elif avg_dist < 10500:
+            return "10K Steady-State"
+        else:
+            return "Endurance 10K+"
+
+    sorted_ids = stats.sort_values("avg_distance").index.tolist()
+    id_to_label: dict[int, str] = {}
+    used_labels: set[str] = set()
+    for cid in sorted_ids:
+        label = _label_for_centroid(stats.loc[cid, "avg_distance"])
+        if label in used_labels:
+            avg_pace = stats.loc[cid, "avg_pace"]
+            existing_cid = [k for k, v in id_to_label.items() if v == label][0]
+            existing_pace = stats.loc[existing_cid, "avg_pace"]
+            if avg_pace < existing_pace:
+                label = f"{label} (High Intensity)"
+            else:
+                id_to_label[existing_cid] = f"{id_to_label[existing_cid]} (High Intensity)"
+                used_labels.add(id_to_label[existing_cid])
+        used_labels.add(label)
+        id_to_label[cid] = label
+
     cluster_profiles = []
     for idx, row in stats.iterrows():
-        # Auto-label based on distance thresholds
-        avg_dist = row["avg_distance"]
-        if avg_dist < 2000:
-            label = "Sprint"
-        elif avg_dist < 7500:
-            label = "5K Steady-State"
-        elif avg_dist <= 12000:
-            label = "10K Steady-State"
-        else:
-            label = "Long Endurance"
-
         cluster_profiles.append({
             "id": int(idx),
-            "label": label,
+            "label": id_to_label[idx],
             "count": int(row["count"]),
             "avg_distance": round(row["avg_distance"]),
             "avg_pace": _format_pace(row["avg_pace"]),
             "avg_duration_min": round(row["avg_duration_min"]),
         })
-
-    # Sort clusters by average distance (Sprint → 5K → 10K → Long)
     cluster_profiles.sort(key=lambda p: stats.loc[p["id"], "avg_distance"])
 
-    # Scatter data for chart
+    # ── Distance-based category profiles (for cards & pie) ──
+    def _distance_category(dist_m: float) -> str:
+        if dist_m < 4000:
+            return "Sprint"
+        elif dist_m < 6500:
+            return "5K Steady-State"
+        elif dist_m < 8500:
+            return "Mid-Distance (5-10K)"
+        elif dist_m < 10500:
+            return "10K Steady-State"
+        else:
+            return "Endurance 10K+"
+
+    cluster_df["category"] = cluster_df["distance_m"].apply(_distance_category)
+    cat_stats = cluster_df.groupby("category").agg(
+        avg_distance=("distance_m", "mean"),
+        avg_pace=("pace_500m", "mean"),
+        avg_duration_min=("time_seconds", lambda x: x.mean() / 60),
+        count=("distance_m", "count"),
+    ).round(1)
+
+    cat_order = ["Sprint", "5K Steady-State", "Mid-Distance (5-10K)",
+                 "10K Steady-State", "Endurance 10K+"]
+    category_profiles = []
+    for cat in cat_order:
+        if cat in cat_stats.index:
+            row = cat_stats.loc[cat]
+            category_profiles.append({
+                "label": cat,
+                "count": int(row["count"]),
+                "avg_distance": round(row["avg_distance"]),
+                "avg_pace": _format_pace(row["avg_pace"]),
+                "avg_duration_min": round(row["avg_duration_min"]),
+            })
+
+    # ── Scatter data (uses K-Means cluster assignment) ──
     scatter_data = []
     for _, row in cluster_df.iterrows():
         scatter_data.append({
             "distance": row["distance_m"],
             "pace": row["pace_500m"],
             "time_min": round(row["time_seconds"] / 60, 1),
+            "stroke_rate": row["stroke_rate"] if pd.notna(row["stroke_rate"]) else None,
+            "calories": row["calories"] if pd.notna(row["calories"]) else None,
             "cluster": int(row["cluster"]),
         })
 
     return {
         "scatter_data": scatter_data,
         "cluster_profiles": cluster_profiles,
+        "category_profiles": category_profiles,
         "elbow_k": list(k_range),
         "elbow_inertias": inertias,
         "n_clusters": n_clusters,

@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard – Concept2 Rowing Analytics</title>
+    <title>The Erg Log — Analytics Dashboard</title>
     <link rel="stylesheet" href="/static/style.css">
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>&#x1F6A3; Dashboard</h1>
+            <h1>&#x1F6A3; The Erg Log — Analytics Dashboard</h1>
             <nav>
                 <span>Welcome, <strong>Eduardo</strong></span>
                 {% if is_authenticated %}
@@ -50,6 +50,16 @@
         </section>
 
         <!-- ── Summary Cards ──────────────────── -->
+        <div class="technique-hint">
+            <span class="technique-label">&#x1F4CA; Descriptive Statistics</span>
+            <span class="technique-text">Aggregation functions (mean, sum, min/max) compute KPIs from raw data.</span>
+            <span class="technique-business">&#x1F4BC; Executive dashboards &middot; Operational KPIs &middot; Anomaly detection <a href="#biz-dashboards" class="technique-link">See business application &darr;</a></span>
+            <div class="technique-cases">
+                <strong>Business case:</strong> Just as these cards track rowing KPIs (total distance, avg pace, streak), the same approach builds
+                <em>executive dashboards</em> that monitor <strong>revenue per customer (ARPU)</strong>, <strong>conversion rates</strong>,
+                and <strong>operational efficiency ratios</strong> &mdash; alerting when metrics breach thresholds.
+            </div>
+        </div>
         <section class="summary-cards">
             <div class="card">                <h3>Last Workout</h3>
                 <p class="stat">{{ summary.last_workout_display | default('–') }}</p>
@@ -107,6 +117,16 @@
 
         <!-- ── Charts ─────────────────────────── -->
         <section class="charts">
+            <div class="technique-hint">
+                <span class="technique-label">&#x1F4C8; Time Series Analysis</span>
+                <span class="technique-text">Temporal aggregation groups data into weekly/monthly buckets using Pandas groupby to reveal volume trends and seasonality.</span>
+                <span class="technique-business">&#x1F4BC; Revenue trending &middot; Demand forecasting &middot; Seasonal planning <a href="#biz-forecasting" class="technique-link">See business application &darr;</a></span>
+                <div class="technique-cases">
+                    <strong>Business case:</strong> Monthly/weekly volume charts here mirror how businesses track
+                    <strong>monthly revenue trends</strong> and <strong>seasonal demand patterns</strong>.
+                    Spot dips before they become problems &mdash; forecast next quarter&rsquo;s demand and optimize <strong>inventory levels</strong> accordingly.
+                </div>
+            </div>
             {% if charts.monthly_distance %}
             <div class="chart-container">
                 {{ charts.monthly_distance | safe }}
@@ -127,6 +147,16 @@
         <section class="charts">
             <h2>&#x1F4C5; Training Heatmap</h2>
             <p class="section-desc">A GitHub-style calendar showing my daily rowing volume. Darker green = more meters.</p>
+            <div class="technique-hint">
+                <span class="technique-label">&#x1F5D3;&#xFE0F; Matrix Transposition &amp; Heatmap Visualization</span>
+                <span class="technique-text">NumPy matrix transposition maps daily values into a weeks &times; weekdays grid. Custom colorscale encodes intensity.</span>
+                <span class="technique-business">&#x1F4BC; User engagement patterns &middot; Website traffic analysis &middot; Activity monitoring <a href="#biz-activity" class="technique-link">See business application &darr;</a></span>
+                <div class="technique-cases">
+                    <strong>Business case:</strong> This heatmap reveals <em>when</em> I train most. For a business, the same visualization shows
+                    <strong>daily/weekly active users (DAU/WAU)</strong>, peak <strong>session times by channel</strong>,
+                    and <strong>feature adoption rates</strong> &mdash; answering <em>&ldquo;when and how often do customers engage?&rdquo;</em>
+                </div>
+            </div>
             <div class="chart-container">
                 {{ charts.heatmap | safe }}
             </div>
@@ -137,6 +167,16 @@
         {% if charts.regression %}
         <section class="charts">
             <h2>&#x1F4C8; Pace Trend Analysis</h2>
+            <div class="technique-hint">
+                <span class="technique-label">&#x1F4C9; Linear &amp; Polynomial Regression</span>
+                <span class="technique-text">OLS linear regression and degree-3 polynomial fit model trends over time. R&sup2; measures goodness of fit. Rolling average smooths noise.</span>
+                <span class="technique-business">&#x1F4BC; Sales forecasting &middot; Price prediction &middot; Performance trajectory modeling <a href="#biz-forecasting" class="technique-link">See business application &darr;</a></span>
+                <div class="technique-cases">
+                    <strong>Business case:</strong> The regression line predicting my pace trend is the same math behind
+                    <strong>sales forecasting</strong> and <strong>price prediction models</strong>.
+                    R&sup2; tells you how reliable the forecast is. Use it to project <strong>growth trajectories</strong> and set data-backed targets.
+                </div>
+            </div>
             <div class="regression-controls">
                 <p class="section-desc">
                     Regression analysis reveals whether my pace is improving over time.
@@ -194,11 +234,21 @@
         {% if charts.clustering %}
         <section class="charts">
             <h2>&#x1F3AF; Workout Clusters (K-Means)</h2>
-            <p class="section-desc">Machine learning groups my workouts into categories based on distance, pace, and duration.</p>
+            <div class="technique-hint">
+                <span class="technique-label">&#x1F3AF; K-Means Clustering (Unsupervised ML)</span>
+                <span class="technique-text">K-Means algorithm with StandardScaler feature normalization discovers natural workout groupings from distance, pace, and duration. Elbow method evaluates optimal K.</span>
+                <span class="technique-business">&#x1F4BC; Customer segmentation &middot; Market basket analysis &middot; User behavior profiling <a href="#biz-segmentation" class="technique-link">See business application &darr;</a></span>
+                <div class="technique-cases">
+                    <strong>Business case:</strong> K-Means groups my workouts into Sprint, 5K, 10K, etc. The same algorithm segments
+                    <strong>customers by CLV and behavior</strong>, builds <strong>RFM scores</strong> (Recency, Frequency, Monetary),
+                    identifies <strong>churn-risk cohorts</strong>, and powers <strong>market basket analysis</strong> to find cross-sell opportunities.
+                </div>
+            </div>
+            <p class="section-desc">Machine learning groups my workouts into 5 categories based on distance, pace, and duration.</p>
 
-            {% if clustering and clustering.cluster_profiles %}
+            {% if clustering and clustering.category_profiles %}
             <div class="cluster-profiles">
-                {% for c in clustering.cluster_profiles %}
+                {% for c in clustering.category_profiles %}
                 <div class="cluster-card">
                     <h4>{{ c.label }}</h4>
                     <p><strong>{{ c.count }}</strong> workouts</p>
@@ -218,6 +268,16 @@
         {% if charts.cluster_pie %}
         <section class="charts">
             <h2>&#x1F4CA; Training Balance</h2>
+            <div class="technique-hint">
+                <span class="technique-label">&#x1F967; Distribution Analysis</span>
+                <span class="technique-text">Proportional analysis of cluster assignments reveals how training effort is allocated across categories.</span>
+                <span class="technique-business">&#x1F4BC; Portfolio allocation &middot; Resource distribution &middot; Market share analysis <a href="#biz-optimization" class="technique-link">See business application &darr;</a></span>
+                <div class="technique-cases">
+                    <strong>Business case:</strong> The pie chart shows how my training is distributed. For business, this same analysis drives
+                    <strong>budget allocation efficiency</strong>, compares <strong>channel ROI</strong>,
+                    measures <strong>market share by segment</strong>, and identifies where <strong>capacity is over- or under-utilized</strong>.
+                </div>
+            </div>
             <p class="section-desc">What percentage of my workouts fall into each category?</p>
             <div class="chart-container">
                 {{ charts.cluster_pie | safe }}
@@ -226,6 +286,83 @@
         {% endif %}
 
 
+
+        <!-- ── Business Applications Showcase ── -->
+        <section class="business-showcase">
+            <h2>&#x1F4BC; Business Applications</h2>
+            <p class="showcase-intro">The same data science techniques powering this dashboard can drive value across industries. Here are KPIs and indicators I can build for your business:</p>
+            <div class="showcase-grid">
+                <div class="showcase-card" id="biz-dashboards">
+                    <div class="showcase-icon">&#x1F4CA;</div>
+                    <h3>Performance Dashboards</h3>
+                    <p class="showcase-desc">Real-time executive scorecards with aggregated KPIs, trend indicators, and automated alerting on threshold breaches.</p>
+                    <ul class="showcase-kpis">
+                        <li>Revenue per customer (ARPU)</li>
+                        <li>Conversion rates &amp; funnel drop-off</li>
+                        <li>Operational efficiency ratios</li>
+                        <li>Goal attainment tracking</li>
+                    </ul>
+                </div>
+                <div class="showcase-card" id="biz-segmentation">
+                    <div class="showcase-icon">&#x1F465;</div>
+                    <h3>Customer Segmentation</h3>
+                    <p class="showcase-desc">ML-driven clustering identifies distinct customer groups by behavior, value, and engagement — enabling targeted strategies.</p>
+                    <ul class="showcase-kpis">
+                        <li>Customer Lifetime Value (CLV)</li>
+                        <li>RFM scoring (Recency, Frequency, Monetary)</li>
+                        <li>Behavioral cohort analysis</li>
+                        <li>Churn risk profiling</li>
+                    </ul>
+                </div>
+                <div class="showcase-card" id="biz-forecasting">
+                    <div class="showcase-icon">&#x1F4C8;</div>
+                    <h3>Demand &amp; Sales Forecasting</h3>
+                    <p class="showcase-desc">Time series models and regression analysis predict future demand, revenue, and resource needs with confidence intervals.</p>
+                    <ul class="showcase-kpis">
+                        <li>Monthly/quarterly revenue forecast</li>
+                        <li>Seasonal demand patterns</li>
+                        <li>Inventory optimization signals</li>
+                        <li>Growth trajectory &amp; R&sup2; confidence</li>
+                    </ul>
+                </div>
+                <div class="showcase-card" id="biz-activity">
+                    <div class="showcase-icon">&#x1F50D;</div>
+                    <h3>Customer Activity Monitoring</h3>
+                    <p class="showcase-desc">Heatmaps and engagement analytics reveal when, how, and how often customers interact with your product or service.</p>
+                    <ul class="showcase-kpis">
+                        <li>Daily/weekly active users (DAU/WAU)</li>
+                        <li>Session frequency &amp; duration</li>
+                        <li>Feature adoption rates</li>
+                        <li>Engagement heatmaps by time &amp; channel</li>
+                    </ul>
+                </div>
+                <div class="showcase-card" id="biz-behavioral">
+                    <div class="showcase-icon">&#x1F9E0;</div>
+                    <h3>Behavioral Analytics</h3>
+                    <p class="showcase-desc">Pattern recognition and trend analysis uncover what drives customer actions — from purchase triggers to churn signals.</p>
+                    <ul class="showcase-kpis">
+                        <li>Purchase propensity scoring</li>
+                        <li>Cross-sell / up-sell opportunity detection</li>
+                        <li>Customer journey mapping</li>
+                        <li>Anomaly detection on behavior shifts</li>
+                    </ul>
+                </div>
+                <div class="showcase-card" id="biz-optimization">
+                    <div class="showcase-icon">&#x2696;&#xFE0F;</div>
+                    <h3>Resource &amp; Portfolio Optimization</h3>
+                    <p class="showcase-desc">Distribution analysis and optimization algorithms help allocate budgets, staff, and inventory where they matter most.</p>
+                    <ul class="showcase-kpis">
+                        <li>Budget allocation efficiency</li>
+                        <li>Channel ROI comparison</li>
+                        <li>Workload balancing metrics</li>
+                        <li>Capacity utilization rates</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="showcase-cta">
+                <p>Interested in leveraging these techniques for your business? <a href="mailto:eduardocabrera1983@gmail.com" class="btn btn-primary btn-sm">&#x1F4E7; Get in Touch</a></p>
+            </div>
+        </section>
 
         <footer>
             <p>Data from <a href="https://log.concept2.com" target="_blank">Concept2 Logbook</a>

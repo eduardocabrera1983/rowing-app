@@ -8,6 +8,7 @@
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -180,3 +181,158 @@ header nav { display: flex; align-items: center; gap: 1rem; }
 /* ÔöÇÔöÇ Footer ÔöÇÔöÇ */
 footer { text-align: center; padding-top: 2rem; color: #888; font-size: 0.85rem; }
 footer a { color: var(--c2-accent); }
+
+/* ── Technique Hints (inline) ── */
+.technique-hint {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    padding: 0.5rem 0.8rem;
+    margin-bottom: 0.8rem;
+    background: var(--c2-light);
+    border-left: 3px solid var(--c2-accent);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    font-size: 0.82rem;
+    line-height: 1.5;
+}
+.technique-label {
+    white-space: nowrap;
+    font-weight: 700;
+    color: var(--c2-blue);
+    flex-shrink: 0;
+}
+.technique-text {
+    color: #555;
+}
+.technique-business {
+    display: block;
+    margin-top: 0.3rem;
+    font-weight: 600;
+    color: var(--c2-accent);
+    font-size: 0.8rem;
+    letter-spacing: 0.02em;
+}
+.technique-link {
+    margin-left: 0.5rem;
+    font-weight: 600;
+    color: var(--c2-blue);
+    text-decoration: none;
+    font-size: 0.75rem;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+.technique-link:hover {
+    opacity: 1;
+    text-decoration: underline;
+}
+.technique-cases {
+    display: block;
+    margin-top: 0.4rem;
+    padding: 0.5rem 0.7rem;
+    background: rgba(0, 51, 102, 0.04);
+    border-radius: 4px;
+    font-size: 0.8rem;
+    color: #444;
+    line-height: 1.55;
+}
+.technique-cases strong {
+    color: var(--c2-blue);
+}
+.technique-cases em {
+    color: #555;
+    font-style: italic;
+}
+
+/* ── Business Applications Showcase ── */
+.business-showcase {
+    margin: 3rem 0 2rem;
+    padding: 2rem;
+    background: linear-gradient(135deg, var(--c2-light) 0%, #fff 100%);
+    border-radius: var(--radius);
+    border: 1px solid #d0ddf0;
+}
+.business-showcase h2 {
+    color: var(--c2-blue);
+    margin-bottom: 0.5rem;
+    font-size: 1.5rem;
+}
+.showcase-intro {
+    color: #555;
+    font-size: 0.95rem;
+    margin-bottom: 1.5rem;
+    line-height: 1.6;
+}
+.showcase-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.2rem;
+    margin-bottom: 1.5rem;
+}
+.showcase-card {
+    background: #fff;
+    padding: 1.4rem;
+    border-radius: var(--radius);
+    box-shadow: 0 2px 8px rgba(0,51,102,0.08);
+    border-left: 4px solid var(--c2-accent);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    scroll-margin-top: 1.5rem;
+}
+.showcase-card:target {
+    animation: highlight-card 1.5s ease;
+}
+@keyframes highlight-card {
+    0%   { box-shadow: 0 0 0 3px var(--c2-accent); }
+    100% { box-shadow: 0 2px 8px rgba(0,51,102,0.08); }
+}
+.showcase-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0,51,102,0.14);
+}
+.showcase-icon {
+    font-size: 1.6rem;
+    margin-bottom: 0.5rem;
+}
+.showcase-card h3 {
+    color: var(--c2-blue);
+    font-size: 1rem;
+    margin-bottom: 0.4rem;
+}
+.showcase-desc {
+    color: #555;
+    font-size: 0.85rem;
+    margin-bottom: 0.7rem;
+    line-height: 1.5;
+}
+.showcase-kpis {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.showcase-kpis li {
+    position: relative;
+    padding: 0.2rem 0 0.2rem 1.2rem;
+    font-size: 0.82rem;
+    color: #444;
+    line-height: 1.4;
+}
+.showcase-kpis li::before {
+    content: '\2713';
+    position: absolute;
+    left: 0;
+    color: var(--c2-accent);
+    font-weight: 700;
+}
+.showcase-cta {
+    text-align: center;
+    padding-top: 1rem;
+    border-top: 1px solid #d0ddf0;
+}
+.showcase-cta p {
+    color: #555;
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+}

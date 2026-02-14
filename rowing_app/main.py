@@ -380,34 +380,56 @@ async def _build_dashboard(request, user_resp, results, sync_info, from_date, to
     if clustering:
         import plotly.graph_objects as go
         from plotly.subplots import make_subplots
-        # Fixed colors mapped to labels (left→right = Sprint → Long)
+        # Fixed colors mapped to labels (left→right = Sprint → Endurance)
         label_colors = {
             "Sprint": "#FFC107",
             "5K Steady-State": "#2196F3",
+            "Mid-Distance (5-10K)": "#9C27B0",
             "10K Steady-State": "#FF5722",
-            "Long Endurance": "#4CAF50",
+            "Endurance 10K+": "#4CAF50",
         }
-        fallback_colors = ["#9C27B0", "#00BCD4", "#E91E63", "#795548"]
+        # Variant shades for "(High Intensity)" suffixed labels
+        label_colors_hi = {
+            "Sprint": "#FFD54F",
+            "5K Steady-State": "#64B5F6",
+            "Mid-Distance (5-10K)": "#BA68C8",
+            "10K Steady-State": "#FF8A65",
+            "Endurance 10K+": "#81C784",
+        }
+        def _get_color(label, idx):
+            if label in label_colors:
+                return label_colors[label]
+            # Check for "(High Intensity)" variant
+            base = label.replace(" (High Intensity)", "")
+            if base in label_colors_hi:
+                return label_colors_hi[base]
+            return ["#00BCD4", "#E91E63", "#795548", "#607D8B"][idx % 4]
 
         # Cluster scatter (Distance vs Pace)
         fig_cl = make_subplots(
-            rows=1, cols=2,
-            subplot_titles=["Distance vs Pace", "Distance vs Duration"],
-            horizontal_spacing=0.12,
+            rows=2, cols=2,
+            subplot_titles=["Distance vs Pace", "Distance vs Duration",
+                            "Distance vs Stroke Rate", "Distance vs Calories"],
+            horizontal_spacing=0.12, vertical_spacing=0.12,
         )
         # Profiles are already sorted by distance in analytics.py
         for i, profile in enumerate(clustering["cluster_profiles"]):
             cid = profile["id"]
             pts = [p for p in clustering["scatter_data"] if p["cluster"] == cid]
-            color = label_colors.get(profile["label"], fallback_colors[i % len(fallback_colors)])
+            color = _get_color(profile["label"], i)
             dists = [p["distance"] for p in pts]
             paces = [p["pace"] for p in pts]
             tmins = [p["time_min"] for p in pts]
+            spms = [p["stroke_rate"] for p in pts if p["stroke_rate"] is not None]
+            cals = [p["calories"] for p in pts if p["calories"] is not None]
+            dists_spm = [p["distance"] for p in pts if p["stroke_rate"] is not None]
+            dists_cal = [p["distance"] for p in pts if p["calories"] is not None]
+            show_legend = True
             fig_cl.add_trace(go.Scatter(
                 x=dists, y=paces, mode="markers",
                 name=profile["label"],
                 marker=dict(size=8, color=color, opacity=0.7),
-                legendgroup=f"c{cid}",
+                legendgroup=f"c{cid}", showlegend=show_legend,
             ), row=1, col=1)
             fig_cl.add_trace(go.Scatter(
                 x=dists, y=tmins, mode="markers",
@@ -415,7 +437,21 @@ async def _build_dashboard(request, user_resp, results, sync_info, from_date, to
                 marker=dict(size=8, color=color, opacity=0.7),
                 legendgroup=f"c{cid}", showlegend=False,
             ), row=1, col=2)
-        # M:SS on left y-axis
+            if spms:
+                fig_cl.add_trace(go.Scatter(
+                    x=dists_spm, y=spms, mode="markers",
+                    name=profile["label"],
+                    marker=dict(size=8, color=color, opacity=0.7),
+                    legendgroup=f"c{cid}", showlegend=False,
+                ), row=2, col=1)
+            if cals:
+                fig_cl.add_trace(go.Scatter(
+                    x=dists_cal, y=cals, mode="markers",
+                    name=profile["label"],
+                    marker=dict(size=8, color=color, opacity=0.7),
+                    legendgroup=f"c{cid}", showlegend=False,
+                ), row=2, col=2)
+        # M:SS on top-left y-axis
         all_cl_paces = [p["pace"] for p in clustering["scatter_data"]]
         cmin = (int(min(all_cl_paces)) // 5) * 5
         cmax = ((int(max(all_cl_paces)) // 5) + 1) * 5
@@ -423,18 +459,23 @@ async def _build_dashboard(request, user_resp, results, sync_info, from_date, to
         ctickt = [f"{v // 60}:{v % 60:02d}" for v in ctickv]
         fig_cl.update_xaxes(title_text="Distance (m)", row=1, col=1)
         fig_cl.update_xaxes(title_text="Distance (m)", row=1, col=2)
+        fig_cl.update_xaxes(title_text="Distance (m)", row=2, col=1)
+        fig_cl.update_xaxes(title_text="Distance (m)", row=2, col=2)
         fig_cl.update_yaxes(title_text="Pace /500m", tickvals=ctickv, ticktext=ctickt, row=1, col=1)
         fig_cl.update_yaxes(title_text="Duration (min)", row=1, col=2)
+        fig_cl.update_yaxes(title_text="Stroke Rate (spm)", row=2, col=1)
+        fig_cl.update_yaxes(title_text="Calories (cal)", row=2, col=2)
         fig_cl.update_layout(
             title="Workout Clusters — K-Means",
-            template="plotly_white", height=500, width=1000,
+            template="plotly_white", height=900, width=1000,
         )
         charts["clustering"] = pio.to_html(fig_cl, full_html=False)
 
-        # Pie chart for training balance
-        labels = [p["label"] for p in clustering["cluster_profiles"]]
-        counts = [p["count"] for p in clustering["cluster_profiles"]]
-        colors_pie = [label_colors.get(p["label"], "#999") for p in clustering["cluster_profiles"]]
+        # Pie chart for training balance (uses distance-based categories)
+        cat_profiles = clustering.get("category_profiles", clustering["cluster_profiles"])
+        labels = [p["label"] for p in cat_profiles]
+        counts = [p["count"] for p in cat_profiles]
+        colors_pie = [_get_color(p["label"], i) for i, p in enumerate(cat_profiles)]
         fig_pie = go.Figure(data=[go.Pie(
             labels=labels, values=counts,
             marker=dict(colors=colors_pie),
