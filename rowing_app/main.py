@@ -72,7 +72,7 @@ async def debug_dashboard(request: Request):
                 username = "eduardo"
         fake_resp = _FakeResp()
 
-        return await _build_dashboard(request, fake_resp, results, None, None, None)
+        return await _build_dashboard(request, fake_resp, results, None, None, None, is_authenticated=False)
     except Exception as e:
         tb = traceback.format_exc()
         logger.error(f"Debug dashboard error:\n{tb}")
@@ -84,12 +84,8 @@ async def debug_dashboard(request: Request):
 # ──────────────────────────────────────────────
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
-    """Landing page – shows login or dashboard link."""
-    token = request.session.get("access_token")
-    return templates.TemplateResponse(
-        "home.html",
-        {"request": request, "logged_in": token is not None},
-    )
+    """Redirect to public dashboard."""
+    return RedirectResponse("/dashboard")
 
 
 @app.get("/auth/login")
@@ -135,43 +131,49 @@ async def dashboard(
     from_date: Optional[str] = None,
     to_date: Optional[str] = None,
 ):
-    """Main analytics dashboard."""
+    """Public analytics dashboard. Authenticated users also get live sync."""
     token = request.session.get("access_token")
-    if not token:
-        return RedirectResponse("/auth/login")
+    sync_info = None
+    is_authenticated = False
 
-    client = Concept2Client(access_token=token)
+    if token:
+        # Authenticated user: try to sync and get live profile
+        client = Concept2Client(access_token=token)
+        try:
+            await client.get_user()  # verify token is still valid
+            sync_info = await sync_workouts(client)
+            is_authenticated = True
+        except Exception as e:
+            logger.warning(f"Auth session expired, showing public dashboard: {e}")
+            # Try refreshing the token
+            refresh = request.session.get("refresh_token")
+            if refresh:
+                try:
+                    new_token = await refresh_access_token(refresh)
+                    request.session["access_token"] = new_token.access_token
+                    request.session["refresh_token"] = new_token.refresh_token
+                    return RedirectResponse("/dashboard")
+                except Exception:
+                    pass
+            request.session.clear()
+
+    # Always show dashboard from local DB (works for everyone)
+    class _FakeResp:
+        class data:
+            first_name = "Eduardo"
+            username = "eduardo"
+    fake_resp = _FakeResp()
+
+    results = load_workouts_as_models(
+        from_date=from_date,
+        to_date=to_date,
+    )
 
     try:
-        # Fetch user profile (lightweight, always live)
-        user_resp = await client.get_user()
-
-        # Sync local DB if needed (>24 h since last sync)
-        sync_info = await sync_workouts(client)
-
-        # Read workouts from local SQLite (instant)
-        results = load_workouts_as_models(
-            from_date=from_date,
-            to_date=to_date,
+        return await _build_dashboard(
+            request, fake_resp, results, sync_info, from_date, to_date,
+            is_authenticated=is_authenticated,
         )
-    except Exception as e:
-        logger.error(f"API error: {e}\n{traceback.format_exc()}")
-        # Try refreshing the token
-        refresh = request.session.get("refresh_token")
-        if refresh:
-            try:
-                new_token = await refresh_access_token(refresh)
-                request.session["access_token"] = new_token.access_token
-                request.session["refresh_token"] = new_token.refresh_token
-                return RedirectResponse("/dashboard")
-            except Exception:
-                pass
-        request.session.clear()
-        return RedirectResponse("/auth/login")
-
-    # Build analytics
-    try:
-        return await _build_dashboard(request, user_resp, results, sync_info, from_date, to_date)
     except Exception as e:
         tb = traceback.format_exc()
         logger.error(f"Dashboard build error:\n{tb}")
@@ -181,7 +183,7 @@ async def dashboard(
         )
 
 
-async def _build_dashboard(request, user_resp, results, sync_info, from_date, to_date):
+async def _build_dashboard(request, user_resp, results, sync_info, from_date, to_date, is_authenticated=False):
     """Build the full dashboard (extracted for error isolation)."""
     df = results_to_dataframe(results)
     summary = compute_summary(df)
@@ -454,6 +456,7 @@ async def _build_dashboard(request, user_resp, results, sync_info, from_date, to
             "from_date": from_date or "",
             "to_date": to_date or "",
             "sync_info": sync_info,
+            "is_authenticated": is_authenticated,
         },
     )
 

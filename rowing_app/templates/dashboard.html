@@ -13,12 +13,16 @@
             <h1>&#x1F6A3; Dashboard</h1>
             <nav>
                 <span>Welcome, <strong>Eduardo</strong></span>
+                {% if is_authenticated %}
                 <a href="/auth/logout" class="btn btn-secondary btn-sm">Logout</a>
+                {% else %}
+                <a href="/auth/login" class="btn btn-secondary btn-sm">Login to Sync</a>
+                {% endif %}
             </nav>
         </header>
 
         <!-- ── Sync Status ─────────────────── -->
-        {% if sync_info %}
+        {% if sync_info and is_authenticated %}
         <section class="sync-status">
             <span class="sync-icon">{% if sync_info.synced %}&#x1F504;{% else %}&#x2705;{% endif %}</span>
             <span>
