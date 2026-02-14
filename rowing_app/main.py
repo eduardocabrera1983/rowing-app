@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import secrets
 import traceback
 from typing import Optional
@@ -37,6 +38,10 @@ app = FastAPI(title="Concept2 Rowing Analytics", version="0.1.0")
 app.add_middleware(SessionMiddleware, secret_key=settings.app_secret_key)
 app.mount("/static", StaticFiles(directory="rowing_app/static"), name="static")
 templates = Jinja2Templates(directory="rowing_app/templates")
+
+# Auto cache-bust: use CSS file mtime as version query param
+_css_path = os.path.join("rowing_app", "static", "style.css")
+_css_version = str(int(os.path.getmtime(_css_path))) if os.path.exists(_css_path) else "1"
 
 
 @app.exception_handler(Exception)
@@ -498,6 +503,7 @@ async def _build_dashboard(request, user_resp, results, sync_info, from_date, to
             "to_date": to_date or "",
             "sync_info": sync_info,
             "is_authenticated": is_authenticated,
+            "css_version": _css_version,
         },
     )
 
