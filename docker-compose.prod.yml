@@ -28,6 +28,9 @@ services:
     depends_on:
       - rowing-app
     restart: unless-stopped
+    # Reload every 6h so nginx picks up freshly renewed certs without manual intervention.
+    # nginx runs in foreground via exec so container restarts if it dies.
+    command: ["/bin/sh", "-c", "(while :; do sleep 6h; nginx -s reload; done) & exec nginx -g 'daemon off;'"]
     networks:
       - app-net
 
@@ -38,6 +41,7 @@ services:
       - certbot-etc:/etc/letsencrypt
       - certbot-var:/var/lib/letsencrypt
       - certbot-www:/var/www/certbot
+    restart: unless-stopped
     # Auto-renew every 12 hours
     entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew --quiet; sleep 12h & wait $${!}; done;'"
     networks:
