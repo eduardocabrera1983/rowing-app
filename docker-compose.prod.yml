@@ -55,11 +55,14 @@ services:
         trap exit TERM
         # Install docker CLI once so the deploy hook can talk to nginx.
         apk add --no-cache docker-cli >/dev/null 2>&1 || true
+        # Bind-mounted hook needs +x; the bit can be lost on Windows clones / read-only mounts.
+        cp /etc/letsencrypt/renewal-hooks/deploy/reload-nginx.sh /tmp/reload-nginx.sh
+        chmod +x /tmp/reload-nginx.sh
         while :; do
           certbot renew \
             --webroot -w /var/www/certbot \
             --non-interactive \
-            --deploy-hook "/etc/letsencrypt/renewal-hooks/deploy/reload-nginx.sh"
+            --deploy-hook /tmp/reload-nginx.sh
           sleep 12h & wait $${!}
         done
     networks:
