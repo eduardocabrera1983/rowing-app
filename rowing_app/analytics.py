@@ -64,7 +64,10 @@ def compute_summary(df: pd.DataFrame) -> dict[str, Any]:
         "first_workout": df["date"].min().strftime("%Y-%m-%d"),
         "last_workout": df["date"].max().strftime("%Y-%m-%d"),
         "last_workout_display": df["date"].max().strftime("%d %b %Y"),
-        "days_since_last": (pd.Timestamp.now() - df["date"].max()).days,
+        "days_since_last": max(
+            0,
+            (pd.Timestamp.now().normalize() - df["date"].max().normalize()).days,
+        ),
         "workout_type_breakdown": df["workout_type"].value_counts().to_dict(),
     }
     return summary
