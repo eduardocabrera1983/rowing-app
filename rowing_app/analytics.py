@@ -447,7 +447,6 @@ def stroke_detail_chart(points: list[dict]) -> str | None:
             x=times_min, y=paces, mode="lines",
             line=dict(color="#3b82f6", width=2),
             name="Pace", hovertemplate="%{x:.2f} min<br>%{y:.1f} s/500m<extra></extra>",
-            fill="tozeroy", fillcolor="rgba(59,130,246,0.15)",
         ),
         row=1, col=1,
     )
@@ -474,15 +473,37 @@ def stroke_detail_chart(points: list[dict]) -> str | None:
     # Pretty M:SS tick labels on the pace axis (inverted: faster pace = smaller value at top)
     valid_paces = [p for p in paces if p is not None and p > 0]
     if valid_paces:
-        pmin = (int(min(valid_paces)) // 5) * 5
-        pmax = ((int(max(valid_paces)) // 5) + 1) * 5
-        tickv = list(range(pmin, pmax + 1, 10))
+        pmn, pmx = min(valid_paces), max(valid_paces)
+        # Tight range around actual data with ~10% padding (min 5s either side)
+        pad = max(5, (pmx - pmn) * 0.1)
+        ylo = max(0, pmn - pad)
+        yhi = pmx + pad
+        # Tick every 5s, snapped to multiples of 5
+        step = 5 if (yhi - ylo) <= 60 else 10
+        tmin = (int(ylo) // step) * step
+        tmax = ((int(yhi) // step) + 1) * step
+        tickv = list(range(tmin, tmax + 1, step))
         tickt = [f"{v // 60}:{v % 60:02d}" for v in tickv]
         fig.update_yaxes(
             tickvals=tickv, ticktext=tickt,
-            autorange="reversed",  # faster pace on top
+            range=[yhi, ylo],  # reversed: smaller (faster) on top
             row=1, col=1,
         )
+
+    # Tight range for stroke rate (around actual data)
+    valid_spms = [s for s in spms if s is not None and s > 0]
+    if valid_spms:
+        smn, smx = min(valid_spms), max(valid_spms)
+        spad = max(2, (smx - smn) * 0.15)
+        fig.update_yaxes(range=[smn - spad, smx + spad], row=2, col=1)
+
+    # Tight range for heart rate
+    if has_hr:
+        valid_hrs = [h for h in hrs if h is not None and h > 0]
+        if valid_hrs:
+            hmn, hmx = min(valid_hrs), max(valid_hrs)
+            hpad = max(5, (hmx - hmn) * 0.1)
+            fig.update_yaxes(range=[hmn - hpad, hmx + hpad], row=3, col=1)
 
     fig.update_xaxes(title_text="Time (min)", row=rows, col=1)
     fig.update_layout(
