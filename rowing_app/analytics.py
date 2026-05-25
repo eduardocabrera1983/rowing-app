@@ -407,3 +407,89 @@ def workout_clustering(df: pd.DataFrame, n_clusters: int = 4) -> dict[str, Any]:
         "elbow_inertias": inertias,
         "n_clusters": n_clusters,
     }
+
+
+def stroke_detail_chart(points: list[dict]) -> str | None:
+    """Build a Pace + Stroke Rate over time chart from stroke-level data.
+
+    ``points`` is a list of dicts with keys ``t`` (tenths of a second since
+    workout start), ``d`` (distance, m), ``p`` (pace in tenths-sec/500m),
+    ``spm`` (strokes per minute) and optionally ``hr``.
+
+    Returns the chart HTML or ``None`` if data is insufficient.
+    """
+    if not points or len(points) < 2:
+        return None
+
+    import plotly.graph_objects as go
+    from plotly.subplots import make_subplots
+
+    times_min = [(p["t"] or 0) / 600.0 for p in points]  # decisecs -> minutes
+    paces = [p["p"] / 10.0 if p.get("p") is not None else None for p in points]
+    spms = [p.get("spm") for p in points]
+    hrs = [p.get("hr") for p in points]
+
+    has_hr = any(h is not None and h > 0 for h in hrs)
+
+    rows = 3 if has_hr else 2
+    fig = make_subplots(
+        rows=rows, cols=1,
+        shared_xaxes=True,
+        vertical_spacing=0.08,
+        subplot_titles=(
+            "Pace /500m", "Stroke Rate (spm)",
+            *(("Heart Rate (bpm)",) if has_hr else ()),
+        ),
+    )
+
+    fig.add_trace(
+        go.Scatter(
+            x=times_min, y=paces, mode="lines",
+            line=dict(color="#3b82f6", width=2),
+            name="Pace", hovertemplate="%{x:.2f} min<br>%{y:.1f} s/500m<extra></extra>",
+            fill="tozeroy", fillcolor="rgba(59,130,246,0.15)",
+        ),
+        row=1, col=1,
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=times_min, y=spms, mode="lines",
+            line=dict(color="#10b981", width=2),
+            name="Stroke Rate",
+            hovertemplate="%{x:.2f} min<br>%{y} spm<extra></extra>",
+        ),
+        row=2, col=1,
+    )
+    if has_hr:
+        fig.add_trace(
+            go.Scatter(
+                x=times_min, y=hrs, mode="lines",
+                line=dict(color="#ef4444", width=2),
+                name="Heart Rate",
+                hovertemplate="%{x:.2f} min<br>%{y} bpm<extra></extra>",
+            ),
+            row=3, col=1,
+        )
+
+    # Pretty M:SS tick labels on the pace axis (inverted: faster pace = smaller value at top)
+    valid_paces = [p for p in paces if p is not None and p > 0]
+    if valid_paces:
+        pmin = (int(min(valid_paces)) // 5) * 5
+        pmax = ((int(max(valid_paces)) // 5) + 1) * 5
+        tickv = list(range(pmin, pmax + 1, 10))
+        tickt = [f"{v // 60}:{v % 60:02d}" for v in tickv]
+        fig.update_yaxes(
+            tickvals=tickv, ticktext=tickt,
+            autorange="reversed",  # faster pace on top
+            row=1, col=1,
+        )
+
+    fig.update_xaxes(title_text="Time (min)", row=rows, col=1)
+    fig.update_layout(
+        template="plotly_white",
+        height=200 * rows + 100,
+        showlegend=False,
+        margin=dict(l=60, r=30, t=60, b=50),
+    )
+    import plotly.io as pio
+    return pio.to_html(fig, full_html=False, include_plotlyjs=False)

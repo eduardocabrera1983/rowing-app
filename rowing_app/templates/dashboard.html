@@ -93,6 +93,33 @@
             </div>
         </section>
 
+        <!-- ── Latest Workout Detail (stroke-level) ────── -->
+        {% if charts.stroke_detail %}
+        <section class="charts">
+            <h2>&#x1F50D; Latest Workout Detail</h2>
+            {% if latest_workout %}
+            <p class="section-desc">
+                <strong>{{ latest_workout.distance }}m</strong>
+                in <strong>{{ latest_workout.time_formatted }}</strong>
+                on {{ latest_workout.date[:10] }}
+                &mdash; pace and stroke rate over time.
+            </p>
+            {% endif %}
+            <div class="technique-hint">
+                <span class="technique-label">&#x1F4C9; High-Resolution Time Series</span>
+                <span class="technique-text">Per-stroke telemetry from the PM5 monitor reveals pacing strategy, fatigue patterns, and stroke rate consistency within a single workout.</span>
+            </div>
+            <div class="chart-container">
+                {{ charts.stroke_detail | safe }}
+            </div>
+        </section>
+        {% elif latest_workout and is_authenticated %}
+        <section class="charts">
+            <h2>&#x1F50D; Latest Workout Detail</h2>
+            <p class="section-desc">No stroke-level data available for the latest workout.</p>
+        </section>
+        {% endif %}
+
         <!-- ── Personal Bests ─────────────────── -->
         {% if personal_bests %}
         <section class="personal-bests">

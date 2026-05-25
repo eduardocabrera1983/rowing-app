@@ -79,7 +79,18 @@ def init_db(db_path: Path = DB_PATH) -> None:
             total_rows      INTEGER NOT NULL DEFAULT 0
         );
 
+        CREATE TABLE IF NOT EXISTS stroke_data (
+            result_id   INTEGER NOT NULL,
+            t           INTEGER NOT NULL,
+            d           INTEGER,
+            p           INTEGER,
+            spm         INTEGER,
+            hr          INTEGER,
+            PRIMARY KEY (result_id, t)
+        );
+
         CREATE INDEX IF NOT EXISTS idx_workouts_date ON workouts(date);
+        CREATE INDEX IF NOT EXISTS idx_stroke_result ON stroke_data(result_id);
         """
     )
     conn.commit()
@@ -333,3 +344,78 @@ async def sync_workouts(client: Concept2Client) -> dict:
         "total_workouts": total,
         "last_sync": last_sync.isoformat() if last_sync else None,
     }
+
+
+# ──────────────────────────────────────────────
+# Stroke data (per-workout high-resolution points)
+# ──────────────────────────────────────────────
+def has_stroke_data(result_id: int) -> bool:
+    """Return True if we already cached stroke points for this workout."""
+    conn = _get_connection()
+    row = conn.execute(
+        "SELECT 1 FROM stroke_data WHERE result_id = ? LIMIT 1",
+        (result_id,),
+    ).fetchone()
+    conn.close()
+    return row is not None
+
+
+def save_stroke_data(result_id: int, points: list) -> int:
+    """Insert stroke data points for a workout. Returns count written."""
+    if not points:
+        return 0
+    rows = [
+        (result_id, p.t or 0, p.d, p.p, p.spm, p.hr)
+        for p in points
+        if p.t is not None
+    ]
+    if not rows:
+        return 0
+    conn = _get_connection()
+    conn.executemany(
+        """
+        INSERT OR REPLACE INTO stroke_data (result_id, t, d, p, spm, hr)
+        VALUES (?, ?, ?, ?, ?, ?)
+        """,
+        rows,
+    )
+    conn.commit()
+    conn.close()
+    return len(rows)
+
+
+def load_stroke_data(result_id: int) -> list[dict]:
+    """Load stroke data points for a workout, ordered by time."""
+    conn = _get_connection()
+    rows = conn.execute(
+        "SELECT t, d, p, spm, hr FROM stroke_data "
+        "WHERE result_id = ? ORDER BY t ASC",
+        (result_id,),
+    ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def get_latest_workout_id() -> Optional[int]:
+    """Return the ID of the most recent workout, or None."""
+    conn = _get_connection()
+    row = conn.execute(
+        "SELECT id FROM workouts ORDER BY date DESC LIMIT 1"
+    ).fetchone()
+    conn.close()
+    return row["id"] if row else None
+
+
+async def fetch_and_cache_stroke_data(
+    client: Concept2Client, result_id: int
+) -> int:
+    """Fetch stroke data from API and cache it locally. Returns points written.
+
+    Silently returns 0 if the workout has no stroke data available.
+    """
+    try:
+        resp = await client.get_stroke_data(result_id)
+    except Exception as e:
+        logger.warning(f"Could not fetch stroke data for {result_id}: {e}")
+        return 0
+    return save_stroke_data(result_id, resp.data)

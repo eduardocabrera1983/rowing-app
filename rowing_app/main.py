@@ -22,6 +22,7 @@ from .analytics import (
     pace_trend_regression,
     personal_bests,
     results_to_dataframe,
+    stroke_detail_chart,
     training_heatmap_data,
     weekly_volume,
     workout_clustering,
@@ -29,7 +30,18 @@ from .analytics import (
 from .api_client import Concept2Client
 from .auth import exchange_code_for_token, get_authorization_url, refresh_access_token
 from .config import settings
-from .database import init_db, load_workouts_as_models, sync_workouts, get_last_sync, get_workout_count, needs_sync
+from .database import (
+    fetch_and_cache_stroke_data,
+    get_last_sync,
+    get_latest_workout_id,
+    get_workout_count,
+    has_stroke_data,
+    init_db,
+    load_stroke_data,
+    load_workouts_as_models,
+    needs_sync,
+    sync_workouts,
+)
 
 # ──────────────────────────────────────────────
 # App setup
@@ -148,6 +160,10 @@ async def dashboard(
             await client.get_user()  # verify token is still valid
             sync_info = await sync_workouts(client)
             is_authenticated = True
+            # Fetch stroke data for the most recent workout if we don't have it yet
+            latest_id = get_latest_workout_id()
+            if latest_id is not None and not has_stroke_data(latest_id):
+                await fetch_and_cache_stroke_data(client, latest_id)
         except Exception as e:
             logger.warning(f"Auth session expired, showing public dashboard: {e}")
             # Try refreshing the token
@@ -198,6 +214,22 @@ async def _build_dashboard(request, user_resp, results, sync_info, from_date, to
     heatmap = training_heatmap_data(df)
     regression = pace_trend_regression(df)
     clustering = workout_clustering(df, n_clusters=4)
+
+    # Latest workout — fetch stroke data (already cached on auth) for detail chart
+    latest_workout_info = None
+    latest_id = get_latest_workout_id()
+    if latest_id is not None and results:
+        latest = max(results, key=lambda r: r.date)
+        stroke_points = load_stroke_data(latest_id)
+        latest_workout_info = {
+            "id": latest_id,
+            "date": latest.date,
+            "distance": latest.distance,
+            "time_formatted": latest.time_formatted,
+            "has_stroke_data": bool(stroke_points),
+        }
+    else:
+        stroke_points = []
 
     # Build Plotly charts (as HTML snippets)
     charts = {}
@@ -489,6 +521,10 @@ async def _build_dashboard(request, user_resp, results, sync_info, from_date, to
         fig_pie.update_layout(title="Training Balance", template="plotly_white")
         charts["cluster_pie"] = pio.to_html(fig_pie, full_html=False)
 
+    # Stroke-level detail chart for the latest workout (if we have data)
+    if stroke_points:
+        charts["stroke_detail"] = stroke_detail_chart(stroke_points)
+
     return templates.TemplateResponse(
         request,
         "dashboard.html",
@@ -503,6 +539,7 @@ async def _build_dashboard(request, user_resp, results, sync_info, from_date, to
             "to_date": to_date or "",
             "sync_info": sync_info,
             "is_authenticated": is_authenticated,
+            "latest_workout": latest_workout_info,
             "css_version": _css_version,
         },
     )
