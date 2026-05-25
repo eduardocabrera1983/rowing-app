@@ -11,26 +11,24 @@ concurrency:
 
 jobs:
   deploy:
-    name: SSH deploy
-    runs-on: ubuntu-latest
+    name: Deploy on EC2 (self-hosted)
+    runs-on: [self-hosted, Linux, X64]
     steps:
-      - name: Deploy over SSH
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: ${{ secrets.SSH_PORT || 22 }}
-          command_timeout: 15m
-          script: |
-            set -euo pipefail
-            cd /opt/rowing-app
-            echo "▸ Pulling latest changes ..."
-            git fetch --all
-            git reset --hard origin/main
-            echo "▸ Rebuilding containers ..."
-            docker compose -f docker-compose.prod.yml up -d --build
-            echo "▸ Pruning dangling images ..."
-            docker image prune -f
-            echo "▸ Service status:"
-            docker compose -f docker-compose.prod.yml ps
+      - name: Pull latest code
+        run: |
+          set -euo pipefail
+          cd /opt/rowing-app
+          git fetch --all
+          git reset --hard origin/main
+
+      - name: Rebuild and restart containers
+        run: |
+          set -euo pipefail
+          cd /opt/rowing-app
+          docker compose -f docker-compose.prod.yml up -d --build
+          docker image prune -f
+
+      - name: Show service status
+        run: |
+          cd /opt/rowing-app
+          docker compose -f docker-compose.prod.yml ps
