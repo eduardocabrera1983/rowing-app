@@ -1,0 +1,36 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: SSH deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          command_timeout: 15m
+          script: |
+            set -euo pipefail
+            cd /opt/rowing-app
+            echo "▸ Pulling latest changes ..."
+            git fetch --all
+            git reset --hard origin/main
+            echo "▸ Rebuilding containers ..."
+            docker compose -f docker-compose.prod.yml up -d --build
+            echo "▸ Pruning dangling images ..."
+            docker image prune -f
+            echo "▸ Service status:"
+            docker compose -f docker-compose.prod.yml ps
