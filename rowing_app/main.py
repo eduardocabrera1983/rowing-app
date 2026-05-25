@@ -490,9 +490,9 @@ async def _build_dashboard(request, user_resp, results, sync_info, from_date, to
         charts["cluster_pie"] = pio.to_html(fig_pie, full_html=False)
 
     return templates.TemplateResponse(
+        request,
         "dashboard.html",
         {
-            "request": request,
             "user": user_resp.data,
             "summary": summary,
             "personal_bests": pbs,
