@@ -21,12 +21,26 @@ jobs:
           git fetch --all
           git reset --hard origin/main
 
+      # Builds previously failed with "No space left on device" on this 8GB volume.
+      # Never pass --volumes: that would destroy the workout DB and Let's Encrypt certs.
+      - name: Reclaim disk space before build
+        run: |
+          set -euo pipefail
+          docker builder prune -af --filter until=72h || true
+          docker image prune -f || true
+          df -h /
+          docker system df
+
       - name: Rebuild and restart containers
         run: |
           set -euo pipefail
           cd /opt/rowing-app
           docker compose -f docker-compose.prod.yml up -d --build
           docker image prune -f
+
+      - name: Report disk usage
+        if: always()
+        run: df -h /
 
       - name: Show service status
         run: |
