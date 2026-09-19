@@ -366,6 +366,8 @@ footer a { color: var(--c2-accent); }
 
     /* Stacking prevents the label/text/business columns collapsing to one word per line. */
     .technique-hint { flex-direction: column; align-items: stretch; gap: 0.35rem; }
+    /* flex-basis becomes height once stacked, so reset it or children inflate. */
+    .technique-hint > * { flex: 0 1 auto; }
     .technique-label { white-space: normal; }
 
     .charts h2, .personal-bests h2, .breakdown h2 { font-size: 1.15rem; }
