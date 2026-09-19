@@ -281,7 +281,6 @@ async def _build_dashboard(request, user_resp, results, sync_info, from_date, to
         z_t = z_t[::-1]
         date_t = date_t[::-1]
         days_reversed = days[::-1]
-        num_weeks = len(weeks)
 
         fig_heat = go.Figure(data=go.Heatmap(
             z=z_t,
@@ -332,7 +331,7 @@ async def _build_dashboard(request, user_resp, results, sync_info, from_date, to
                 ticktext=tick_text,
             ),
             yaxis=dict(tickfont=dict(size=11), automargin=True),
-            width=max(600, num_weeks * 20 + 140),
+            autosize=True,
             height=240,
             template="plotly_white",
             margin=dict(l=50, r=80, t=70, b=10),
