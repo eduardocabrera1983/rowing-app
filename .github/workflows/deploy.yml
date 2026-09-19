@@ -21,14 +21,13 @@ jobs:
           git fetch --all
           git reset --hard origin/main
 
-      # Builds previously failed with "No space left on device" on this 8GB volume.
-      # Cache is pruned fully rather than capped: one build regrows it to ~900MB,
-      # which leaves too little headroom. Raise --max-used-space once the volume grows.
+      # Builds previously failed with "No space left on device". The volume is now
+      # 30GB, so cache is capped rather than wiped, keeping builds fast.
       # Never pass --volumes: that would destroy the workout DB and Let's Encrypt certs.
       - name: Reclaim disk space before build
         run: |
           set -euo pipefail
-          docker builder prune -af || true
+          docker builder prune -f --max-used-space 4GB || true
           docker image prune -f || true
           df -h /
           docker system df
