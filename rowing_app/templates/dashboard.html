@@ -418,6 +418,10 @@
             axisKeys(l, 'xaxis').concat(axisKeys(l, 'yaxis')).forEach(function (k) {
                 if (l[k] && l[k].domain) snap.domains[k] = l[k].domain.slice();
             });
+            snap.xTitles = {};
+            axisKeys(l, 'xaxis').forEach(function (k) {
+                snap.xTitles[k] = (l[k] && l[k].title && l[k].title.text) || '';
+            });
             snapshots.set(div, snap);
             return snap;
         }
@@ -445,6 +449,7 @@
                 if (snap.legend) upd.legend = snap.legend;
                 if (snap.annotations) upd.annotations = snap.annotations;
                 Object.keys(snap.domains).forEach(function (k) { upd[k + '.domain'] = snap.domains[k]; });
+                Object.keys(snap.xTitles).forEach(function (k) { upd[k + '.title.text'] = snap.xTitles[k]; });
                 upd['font.size'] = 12;
                 return Plotly.relayout(div, upd);
             }
@@ -461,8 +466,9 @@
             if (xs.length > 1 && isMultiColumn(l)) {
                 // Side-by-side panels are unreadable at ~250px, so give each its own row.
                 var n = xs.length;
-                var gap = 0.06;
-                var band = (1 - gap * (n - 1)) / n;
+                var gap = 0.085;
+                var top = 0.955;  // headroom so the chart title clears panel one
+                var band = (top - gap * (n - 1)) / n;
                 var tops = [];
                 xs.forEach(function (xk, i) {
                     var yk = xk.replace('xaxis', 'yaxis');
@@ -470,8 +476,10 @@
                     tops.push(bottom + band);
                     upd[xk + '.domain'] = [0, 1];
                     upd[yk + '.domain'] = [bottom, bottom + band];
+                    // Every panel shares the same x label, so keep only the bottom one.
+                    if (i < n - 1) upd[xk + '.title.text'] = '';
                 });
-                upd.height = n * 260 + 120;
+                upd.height = n * 270 + 140;
                 if (snap.annotations && snap.annotations.length >= n) {
                     var anns = JSON.parse(JSON.stringify(snap.annotations));
                     for (var i = 0; i < n; i++) {
