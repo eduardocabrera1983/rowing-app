@@ -95,6 +95,7 @@ header {
     gap: 1rem;
 }
 header h1 { color: var(--c2-blue); font-size: clamp(1.3rem, 4.5vw, 2rem); line-height: 1.25; }
+header .tagline { color: var(--text-muted); font-size: 0.95rem; margin-top: 0.25rem; }
 header nav { display: flex; align-items: center; gap: 1rem; }
 
 /* ÔöÇÔöÇ Buttons ÔöÇÔöÇ */

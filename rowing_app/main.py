@@ -1,4 +1,4 @@
-"""FastAPI application – Concept2 Rowing Analytics Dashboard."""
+"""FastAPI application – Laat Lopen, Eduardo's Concept2 rowing analytics."""
 
 from __future__ import annotations
 

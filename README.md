@@ -1,6 +1,6 @@
-# 🚣 Rowing App — Concept2 Analytics Dashboard
+# 🚣 Laat Lopen — Eduardo's Rowing Data
 
-A personal analytics dashboard that connects to the **Concept2 Logbook API** to visualise my RowErg workout data with interactive charts, trend analysis, and machine learning insights.
+A personal analytics dashboard that connects to the **Concept2 Logbook API** to visualise my RowErg workout data with interactive charts, trend analysis, and machine learning insights — from the Amstel to the erg.
 
 Built with **FastAPI**, **Plotly**, **scikit-learn**, and **SQLite** for local data storage.
 
