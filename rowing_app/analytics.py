@@ -536,4 +536,4 @@ def stroke_detail_chart(points: list[dict]) -> str | None:
         margin=dict(l=60, r=30, t=60, b=50),
     )
     import plotly.io as pio
-    return pio.to_html(fig, full_html=False, include_plotlyjs=False)
+    return pio.to_html(fig, full_html=False, include_plotlyjs=False, config={"responsive": True})

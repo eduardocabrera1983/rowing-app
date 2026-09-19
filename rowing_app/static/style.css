@@ -15,7 +15,10 @@ body {
     background: #f5f6fa;
     color: #333;
     line-height: 1.6;
+    overflow-x: hidden;
 }
+
+img, svg, table, pre { max-width: 100%; }
 
 .container {
     max-width: 1200px;
@@ -32,7 +35,7 @@ header {
     flex-wrap: wrap;
     gap: 1rem;
 }
-header h1 { color: var(--c2-blue); }
+header h1 { color: var(--c2-blue); font-size: clamp(1.3rem, 4.5vw, 2rem); line-height: 1.25; }
 header nav { display: flex; align-items: center; gap: 1rem; }
 
 /* ÔöÇÔöÇ Buttons ÔöÇÔöÇ */
@@ -103,13 +106,14 @@ header nav { display: flex; align-items: center; gap: 1rem; }
     text-align: center;
 }
 .card h3 { font-size: 0.85rem; color: #666; margin-bottom: 0.5rem; text-transform: uppercase; }
-.card .stat { font-size: 1.6rem; font-weight: 700; color: var(--c2-blue); }
+.card .stat { font-size: clamp(1.15rem, 4.5vw, 1.6rem); font-weight: 700; color: var(--c2-blue); }
 .card .stat-warn { color: #d35400; }
 
 /* ÔöÇÔöÇ Personal Bests ÔöÇÔöÇ */
 .personal-bests { margin-bottom: 2rem; }
 .personal-bests h2 { color: var(--c2-blue); margin-bottom: 1rem; }
-.personal-bests table { width: 100%; border-collapse: collapse; background: #fff; border-radius: var(--radius); overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+.table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: var(--radius); }
+.personal-bests table { width: 100%; min-width: 420px; border-collapse: collapse; background: #fff; border-radius: var(--radius); overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
 .personal-bests th, .personal-bests td { padding: 0.75rem 1rem; text-align: left; }
 .personal-bests th { background: var(--c2-blue); color: #fff; }
 .personal-bests tr:nth-child(even) { background: var(--c2-light); }
@@ -185,6 +189,7 @@ footer a { color: var(--c2-accent); }
 /* ── Technique Hints (inline) ── */
 .technique-hint {
     display: flex;
+    flex-wrap: wrap;
     align-items: baseline;
     gap: 0.6rem;
     padding: 0.5rem 0.8rem;
@@ -203,9 +208,11 @@ footer a { color: var(--c2-accent); }
 }
 .technique-text {
     color: #555;
+    flex: 1 1 240px;
 }
 .technique-business {
     display: block;
+    flex: 1 1 100%;
     margin-top: 0.3rem;
     font-weight: 600;
     color: var(--c2-accent);
@@ -227,6 +234,7 @@ footer a { color: var(--c2-accent); }
 }
 .technique-cases {
     display: block;
+    flex: 1 1 100%;
     margin-top: 0.4rem;
     padding: 0.5rem 0.7rem;
     background: rgba(0, 51, 102, 0.04);
@@ -335,4 +343,46 @@ footer a { color: var(--c2-accent); }
     justify-content: center;
     gap: 0.8rem;
     flex-wrap: wrap;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+    .container { padding: 1rem 0.85rem; }
+
+    header { margin-bottom: 1.2rem; gap: 0.6rem; }
+    header nav { width: 100%; justify-content: space-between; }
+
+    .sync-status { flex-wrap: wrap; font-size: 0.8rem; }
+    .sync-status .btn { margin-left: 0; width: 100%; text-align: center; }
+
+    .filters form { gap: 0.75rem; padding: 0.85rem; margin-bottom: 1.2rem; }
+    .filters label { flex: 1 1 100%; }
+    .filters input { width: 100%; }
+    .filters .btn { width: 100%; }
+
+    .summary-cards { grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); gap: 0.7rem; margin-bottom: 1.2rem; }
+    .card { padding: 0.9rem 0.6rem; }
+    .card h3 { font-size: 0.7rem; }
+
+    /* Stacking prevents the label/text/business columns collapsing to one word per line. */
+    .technique-hint { flex-direction: column; align-items: stretch; gap: 0.35rem; }
+    .technique-label { white-space: normal; }
+
+    .charts h2, .personal-bests h2, .breakdown h2 { font-size: 1.15rem; }
+    .chart-container { padding: 0.5rem; }
+
+    .cluster-profiles { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.7rem; }
+
+    .regression-controls { flex-direction: column; align-items: stretch; }
+    .reg-filter select { width: 100%; }
+
+    /* Comfortable touch targets on small screens. */
+    .btn-sm { padding: 0.55rem 1rem; font-size: 0.9rem; }
+}
+
+@media (max-width: 480px) {
+    .summary-cards { grid-template-columns: repeat(2, 1fr); }
+    .cluster-profiles { grid-template-columns: 1fr; }
+    .personal-bests th, .personal-bests td { padding: 0.55rem 0.6rem; font-size: 0.85rem; }
+    footer { font-size: 0.78rem; }
 }

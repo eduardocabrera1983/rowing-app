@@ -253,7 +253,7 @@ async def _build_dashboard(request, user_resp, results, sync_info, from_date, to
             labels={"month": "Month", "total_distance_km": "Distance (km)"},
         )
         fig_monthly.update_layout(template="plotly_white")
-        charts["monthly_distance"] = pio.to_html(fig_monthly, full_html=False)
+        charts["monthly_distance"] = pio.to_html(fig_monthly, full_html=False, config={"responsive": True})
 
     if not weekly.empty:
         fig_weekly = px.bar(
@@ -264,7 +264,7 @@ async def _build_dashboard(request, user_resp, results, sync_info, from_date, to
             labels={"year_week": "Week", "total_distance_km": "Distance (km)"},
         )
         fig_weekly.update_layout(template="plotly_white")
-        charts["weekly_distance"] = pio.to_html(fig_weekly, full_html=False)
+        charts["weekly_distance"] = pio.to_html(fig_weekly, full_html=False, config={"responsive": True})
 
     # ── Training Heatmap (GitHub-style) ───────────
     if heatmap:
@@ -338,7 +338,7 @@ async def _build_dashboard(request, user_resp, results, sync_info, from_date, to
             margin=dict(l=50, r=80, t=70, b=10),
             plot_bgcolor="#fff",
         )
-        charts["heatmap"] = pio.to_html(fig_heat, full_html=False)
+        charts["heatmap"] = pio.to_html(fig_heat, full_html=False, config={"responsive": True})
 
     # ── Pace Trend Regression ─────────────────────
     if regression:
@@ -422,7 +422,7 @@ async def _build_dashboard(request, user_resp, results, sync_info, from_date, to
             template="plotly_white", height=500,
             legend=dict(x=0.02, y=0.02, bgcolor="rgba(255,255,255,0.8)"),
         )
-        charts["regression"] = pio.to_html(fig_reg, full_html=False)
+        charts["regression"] = pio.to_html(fig_reg, full_html=False, config={"responsive": True})
 
     # ── Workout Clustering ────────────────────────
     if clustering:
@@ -515,9 +515,9 @@ async def _build_dashboard(request, user_resp, results, sync_info, from_date, to
         fig_cl.update_yaxes(title_text="Calories (cal)", row=2, col=2)
         fig_cl.update_layout(
             title="Workout Clusters — K-Means",
-            template="plotly_white", height=900, width=1000,
+            template="plotly_white", height=900, autosize=True,
         )
-        charts["clustering"] = pio.to_html(fig_cl, full_html=False)
+        charts["clustering"] = pio.to_html(fig_cl, full_html=False, config={"responsive": True})
 
         # Pie chart for training balance (uses distance-based categories)
         cat_profiles = clustering.get("category_profiles", clustering["cluster_profiles"])
@@ -530,7 +530,7 @@ async def _build_dashboard(request, user_resp, results, sync_info, from_date, to
             textinfo="label+percent",
         )])
         fig_pie.update_layout(title="Training Balance", template="plotly_white")
-        charts["cluster_pie"] = pio.to_html(fig_pie, full_html=False)
+        charts["cluster_pie"] = pio.to_html(fig_pie, full_html=False, config={"responsive": True})
 
     # Stroke-level detail chart for the latest workout (if we have data)
     if stroke_points:

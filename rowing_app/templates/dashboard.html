@@ -140,21 +140,23 @@
         {% if personal_bests %}
         <section class="personal-bests">
             <h2>Personal Bests</h2>
-            <table>
-                <thead>
-                    <tr><th>Distance</th><th>Time</th><th>Pace /500m</th><th>Date</th></tr>
-                </thead>
-                <tbody>
-                    {% for distance, pb in personal_bests.items() %}
-                    <tr>
-                        <td>{{ distance }}</td>
-                        <td>{{ pb.time }}</td>
-                        <td>{{ pb.pace }}</td>
-                        <td>{{ pb.date }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr><th>Distance</th><th>Time</th><th>Pace /500m</th><th>Date</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for distance, pb in personal_bests.items() %}
+                        <tr>
+                            <td>{{ distance }}</td>
+                            <td>{{ pb.time }}</td>
+                            <td>{{ pb.pace }}</td>
+                            <td>{{ pb.date }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </section>
         {% endif %}
 
