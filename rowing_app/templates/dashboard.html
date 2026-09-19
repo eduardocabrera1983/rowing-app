@@ -202,10 +202,44 @@
                     and <strong>feature adoption rates</strong> &mdash; answering <em>&ldquo;when and how often do customers engage?&rdquo;</em>
                 </div>
             </div>
-            <div class="chart-container">
+            <div class="chart-container" id="heatmap-container">
                 {{ charts.heatmap | safe }}
             </div>
         </section>
+        <script>
+        (function () {
+            var wrap = document.getElementById('heatmap-container');
+            if (!wrap) return;
+            var MOBILE_WEEKS = 12;
+
+            function tune() {
+                var div = wrap.querySelector('.plotly-graph-div');
+                if (!div || !window.Plotly || !div.data || !div.data[0]) return;
+                var weeks = div.data[0].x ? div.data[0].x.length : 0;
+
+                if (window.innerWidth <= 768 && weeks > MOBILE_WEEKS) {
+                    // Clamp the category axis to the most recent weeks so the full
+                    // multi-year calendar doesn't force sideways scrolling on a phone.
+                    Plotly.relayout(div, {
+                        width: wrap.clientWidth - 16,
+                        'xaxis.range': [weeks - MOBILE_WEEKS - 0.5, weeks - 0.5]
+                    });
+                } else {
+                    Plotly.relayout(div, {'xaxis.autorange': true});
+                    wrap.scrollLeft = wrap.scrollWidth;
+                }
+            }
+
+            if (document.readyState === 'complete') { tune(); }
+            else { window.addEventListener('load', tune); }
+
+            var t;
+            window.addEventListener('resize', function () {
+                clearTimeout(t);
+                t = setTimeout(tune, 200);
+            });
+        })();
+        </script>
         {% endif %}
 
         <!-- ── Pace Trend Regression ──────────── -->
