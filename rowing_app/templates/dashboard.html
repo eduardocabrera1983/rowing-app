@@ -217,16 +217,34 @@
                 if (!div || !window.Plotly || !div.data || !div.data[0]) return;
                 var weeks = div.data[0].x ? div.data[0].x.length : 0;
                 var w = wrap.clientWidth - 16;
+                var mobile = window.innerWidth <= 768 && weeks > MOBILE_WEEKS;
 
-                if (window.innerWidth <= 768 && weeks > MOBILE_WEEKS) {
+                if (mobile) {
                     // Clamp the category axis to the most recent weeks so a phone
                     // shows readable cells instead of a squashed multi-year calendar.
                     Plotly.relayout(div, {
                         width: w,
-                        'xaxis.range': [weeks - MOBILE_WEEKS - 0.5, weeks - 0.5]
+                        'xaxis.range': [weeks - MOBILE_WEEKS - 0.5, weeks - 0.5],
+                        'xaxis.tickfont.size': 9,
+                        'yaxis.tickfont.size': 9,
+                        'title.text': 'Training Heatmap',
+                        'title.font.size': 12,
+                        'margin.l': 34, 'margin.r': 8, 'margin.t': 46
                     });
+                    Plotly.restyle(div, {'colorbar.thickness': 7, 'colorbar.len': 0.9,
+                                         'colorbar.tickfont.size': 8, 'colorbar.title.text': ''}, [0]);
                 } else {
-                    Plotly.relayout(div, {width: w, 'xaxis.autorange': true});
+                    Plotly.relayout(div, {
+                        width: w,
+                        'xaxis.autorange': true,
+                        'xaxis.tickfont.size': 10,
+                        'yaxis.tickfont.size': 11,
+                        'title.text': 'Training Heatmap \u2014 Distance per Day',
+                        'title.font.size': 14,
+                        'margin.l': 50, 'margin.r': 80, 'margin.t': 70
+                    });
+                    Plotly.restyle(div, {'colorbar.thickness': 10, 'colorbar.len': 0.5,
+                                         'colorbar.tickfont.size': 11, 'colorbar.title.text': 'Meters'}, [0]);
                 }
             }
 
