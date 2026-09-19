@@ -4,13 +4,32 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Concept2 Rowing Analytics</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <script>
+        // Runs before paint so the page never flashes the wrong theme.
+        (function () {
+            try {
+                var stored = localStorage.getItem('theme');
+                var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                document.documentElement.setAttribute('data-theme', stored || (dark ? 'dark' : 'light'));
+            } catch (e) { document.documentElement.setAttribute('data-theme', 'light'); }
+        })();
+    </script>
+    <link rel="stylesheet" href="{{ static_url('style.css') }}">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>&#x1F6A3; Concept2 Rowing Analytics</h1>
-            <p>Connect my Concept2 Logbook to view workout statistics and insights.</p>
+            <div>
+                <h1>&#x1F6A3; Concept2 Rowing Analytics</h1>
+                <p>Connect my Concept2 Logbook to view workout statistics and insights.</p>
+            </div>
+            <nav>
+                <button type="button" class="theme-toggle" id="theme-toggle"
+                        aria-label="Switch between light and dark theme" title="Light / dark theme">
+                    <span class="theme-icon-moon" aria-hidden="true">&#x1F319;</span>
+                    <span class="theme-icon-sun" aria-hidden="true">&#x2600;</span>
+                </button>
+            </nav>
         </header>
 
         <main>
@@ -26,5 +45,16 @@
             <p>Powered by the <a href="https://log.concept2.com/developers/documentation/" target="_blank">Concept2 Logbook API</a></p>
         </footer>
     </div>
+    <script>
+        (function () {
+            var btn = document.getElementById('theme-toggle');
+            if (!btn) return;
+            btn.addEventListener('click', function () {
+                var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+                document.documentElement.setAttribute('data-theme', next);
+                try { localStorage.setItem('theme', next); } catch (e) { /* storage blocked */ }
+            });
+        })();
+    </script>
 </body>
 </html>

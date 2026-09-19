@@ -4,7 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Erg Log — Analytics Dashboard</title>
-    <link rel="stylesheet" href="/static/style.css?v={{ css_version }}">
+    <script>
+        // Runs before paint so the page never flashes the wrong theme.
+        (function () {
+            try {
+                var stored = localStorage.getItem('theme');
+                var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                document.documentElement.setAttribute('data-theme', stored || (dark ? 'dark' : 'light'));
+            } catch (e) { document.documentElement.setAttribute('data-theme', 'light'); }
+        })();
+    </script>
+    <link rel="stylesheet" href="{{ static_url('style.css') }}">
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 </head>
 <body>
@@ -13,6 +23,11 @@
             <h1>&#x1F6A3; The Erg Log — Analytics Dashboard</h1>
             <nav>
                 <span>Welcome, <strong>Eduardo</strong></span>
+                <button type="button" class="theme-toggle" id="theme-toggle"
+                        aria-label="Switch between light and dark theme" title="Light / dark theme">
+                    <span class="theme-icon-moon" aria-hidden="true">&#x1F319;</span>
+                    <span class="theme-icon-sun" aria-hidden="true">&#x2600;</span>
+                </button>
                 {% if is_authenticated %}
                 <a href="/auth/logout" class="btn btn-secondary btn-sm">Logout</a>
                 {% else %}
@@ -388,6 +403,59 @@
                &middot; Source: local database (syncs every 24h)</p>
         </footer>
     </div>
+
+    <script>
+    // Theme switcher: flips the data-theme attribute and repaints every Plotly chart,
+    // since the figures are rendered server-side with the light template baked in.
+    (function () {
+        var PALETTE = {
+            light: {paper: '#ffffff', plot: '#ffffff', font: '#333333', grid: '#ebedf0', line: '#cccccc'},
+            dark:  {paper: '#1a2029', plot: '#1a2029', font: '#e3e8f0', grid: '#2c3745', line: '#3a4553'}
+        };
+
+        function currentTheme() {
+            return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+        }
+
+        function paintCharts() {
+            if (!window.Plotly) return;
+            var c = PALETTE[currentTheme()];
+            document.querySelectorAll('.plotly-graph-div').forEach(function (div) {
+                if (!div.layout) return;
+                var upd = {
+                    paper_bgcolor: c.paper,
+                    plot_bgcolor: c.plot,
+                    'font.color': c.font,
+                    'legend.bgcolor': 'rgba(0,0,0,0)'
+                };
+                Object.keys(div.layout).forEach(function (k) {
+                    if (/^[xy]axis\d*$/.test(k)) {
+                        upd[k + '.gridcolor'] = c.grid;
+                        upd[k + '.zerolinecolor'] = c.line;
+                        upd[k + '.linecolor'] = c.line;
+                    }
+                });
+                (div.layout.annotations || []).forEach(function (_, i) {
+                    upd['annotations[' + i + '].font.color'] = c.font;
+                });
+                try { Plotly.relayout(div, upd); } catch (e) { /* leave chart as-is */ }
+            });
+        }
+
+        var btn = document.getElementById('theme-toggle');
+        if (btn) {
+            btn.addEventListener('click', function () {
+                var next = currentTheme() === 'dark' ? 'light' : 'dark';
+                document.documentElement.setAttribute('data-theme', next);
+                try { localStorage.setItem('theme', next); } catch (e) { /* storage blocked */ }
+                paintCharts();
+            });
+        }
+
+        if (document.readyState === 'complete') { paintCharts(); }
+        else { window.addEventListener('load', paintCharts); }
+    })();
+    </script>
 
     <script>
     // Plotly's default margins consume ~160px, which leaves almost no plot area on a

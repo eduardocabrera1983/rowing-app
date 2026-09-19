@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import os
 import secrets
 import traceback
@@ -48,12 +49,42 @@ from .database import (
 # ──────────────────────────────────────────────
 app = FastAPI(title="Concept2 Rowing Analytics", version="0.1.0")
 app.add_middleware(SessionMiddleware, secret_key=settings.app_secret_key)
-app.mount("/static", StaticFiles(directory="rowing_app/static"), name="static")
+
+STATIC_DIR = os.path.join("rowing_app", "static")
+
+
+class VersionedStaticFiles(StaticFiles):
+    """Serves hashed asset URLs (?v=...) as immutable so browsers never re-request them."""
+
+    async def get_response(self, path: str, scope):
+        response = await super().get_response(path, scope)
+        if b"v=" in scope.get("query_string", b""):
+            response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        else:
+            response.headers["Cache-Control"] = "no-cache"
+        return response
+
+
+app.mount("/static", VersionedStaticFiles(directory=STATIC_DIR), name="static")
 templates = Jinja2Templates(directory="rowing_app/templates")
 
-# Auto cache-bust: use CSS file mtime as version query param
-_css_path = os.path.join("rowing_app", "static", "style.css")
-_css_version = str(int(os.path.getmtime(_css_path))) if os.path.exists(_css_path) else "1"
+_asset_versions: dict[str, str] = {}
+
+
+def static_url(filename: str) -> str:
+    """Build a /static URL fingerprinted with the file's content hash."""
+    version = None if settings.app_debug else _asset_versions.get(filename)
+    if version is None:
+        try:
+            with open(os.path.join(STATIC_DIR, filename), "rb") as fh:
+                version = hashlib.sha256(fh.read()).hexdigest()[:10]
+        except OSError:
+            version = "0"
+        _asset_versions[filename] = version
+    return f"/static/{filename}?v={version}"
+
+
+templates.env.globals["static_url"] = static_url
 
 
 @app.exception_handler(Exception)
@@ -550,7 +581,6 @@ async def _build_dashboard(request, user_resp, results, sync_info, from_date, to
             "sync_info": sync_info,
             "is_authenticated": is_authenticated,
             "latest_workout": latest_workout_info,
-            "css_version": _css_version,
         },
     )
 
