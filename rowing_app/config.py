@@ -24,6 +24,9 @@ class Settings(BaseSettings):
     app_debug: bool = Field(default=True)
     log_level: str = Field(default="INFO")
 
+    # Only this Concept2 username may authenticate and sync (dashboard stays public)
+    owner_username: str = Field(default="educabrera1983")
+
     @property
     def c2_authorize_url(self) -> str:
         return f"{self.c2_api_base_url}/oauth/authorize"

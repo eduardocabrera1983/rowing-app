@@ -58,42 +58,37 @@ _css_version = str(int(os.path.getmtime(_css_path))) if os.path.exists(_css_path
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    """Catch-all: show the real traceback instead of generic 500."""
+    """Catch-all: log the traceback; only expose details when debug is on."""
     tb = traceback.format_exc()
     logger.error(f"Unhandled exception on {request.url}:\n{tb}")
-    return HTMLResponse(
-        f"<h2>Server Error</h2><pre>{type(exc).__name__}: {exc}\n\n{tb}</pre>",
-        status_code=500,
-    )
+    if settings.app_debug:
+        body = f"<h2>Server Error</h2><pre>{type(exc).__name__}: {exc}\n\n{tb}</pre>"
+    else:
+        body = "<h2>Server Error</h2><p>Something went wrong. Please try again later.</p>"
+    return HTMLResponse(body, status_code=500)
 
 
 @app.on_event("startup")
 async def startup_event():
     """Initialise the local SQLite database on app start."""
+    _verify_secret_key()
     init_db()
 
 
-# ──────────────────────────────────────────────
-# Debug endpoint – renders full dashboard with local data, no auth
-# ──────────────────────────────────────────────
-@app.get("/debug-dashboard", response_class=HTMLResponse)
-async def debug_dashboard(request: Request):
-    """Full dashboard render using cached DB data – no OAuth required."""
-    try:
-        results = load_workouts_as_models()
-
-        # Create a fake response object that mimics the Concept2 user API response
-        class _FakeResp:
-            class data:
-                first_name = "Eduardo"
-                username = "eduardo"
-        fake_resp = _FakeResp()
-
-        return await _build_dashboard(request, fake_resp, results, None, None, None, is_authenticated=False)
-    except Exception as e:
-        tb = traceback.format_exc()
-        logger.error(f"Debug dashboard error:\n{tb}")
-        return HTMLResponse(f"<h2>Debug Error</h2><pre>{tb}</pre>", status_code=500)
+def _verify_secret_key() -> None:
+    """Refuse to serve publicly with a default/weak session key."""
+    key = settings.app_secret_key
+    weak = key == "change-me-to-a-random-string" or "openssl rand" in key or len(key) < 32
+    if not weak:
+        return
+    msg = (
+        "APP_SECRET_KEY is missing, default, or too short. "
+        "Generate one with: openssl rand -hex 32"
+    )
+    if settings.app_debug:
+        logger.warning(f"INSECURE: {msg}")
+    else:
+        raise RuntimeError(msg)
 
 
 # ──────────────────────────────────────────────
@@ -125,10 +120,25 @@ async def auth_callback(request: Request, code: str, state: Optional[str] = None
         request.session.clear()
         return RedirectResponse("/auth/login")
 
+    # Only the owner may authenticate/sync — everyone else just gets the public view.
+    try:
+        client = Concept2Client(access_token=token.access_token)
+        user_resp = await client.get_user()
+        username = user_resp.data.username
+    except Exception as e:
+        logger.error(f"Could not verify user identity: {e}")
+        request.session.clear()
+        return RedirectResponse("/dashboard")
+
+    if username.lower() != settings.owner_username.lower():
+        logger.warning(f"Rejected login for non-owner user '{username}'.")
+        request.session.clear()
+        return RedirectResponse("/dashboard")
+
     request.session.pop("oauth_state", None)
     request.session["access_token"] = token.access_token
     request.session["refresh_token"] = token.refresh_token
-    logger.info("User authenticated successfully.")
+    logger.info(f"Owner '{username}' authenticated successfully.")
     return RedirectResponse("/dashboard")
 
 
@@ -198,8 +208,9 @@ async def dashboard(
     except Exception as e:
         tb = traceback.format_exc()
         logger.error(f"Dashboard build error:\n{tb}")
+        detail = f"<pre>{tb}</pre>" if settings.app_debug else "<p>Something went wrong.</p>"
         return HTMLResponse(
-            f"<h2>Dashboard Error</h2><pre>{tb}</pre>",
+            f"<h2>Dashboard Error</h2>{detail}",
             status_code=500,
         )
 

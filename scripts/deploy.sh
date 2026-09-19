@@ -54,7 +54,9 @@ echo ""
 echo "▸ [4/6] Setting up environment ..."
 if [ ! -f "$APP_DIR/.env" ]; then
     echo "  Creating .env file — you need to fill in your Concept2 credentials!"
-    cat > "$APP_DIR/.env" << 'ENVEOF'
+    # Generated here: an unquoted heredoc below would not expand $(...) if quoted.
+    GENERATED_SECRET_KEY=$(openssl rand -hex 32)
+    cat > "$APP_DIR/.env" << ENVEOF
 # Concept2 OAuth2 — get from https://log.concept2.com/developers/keys
 C2_CLIENT_ID=your_client_id_here
 C2_CLIENT_SECRET=your_client_secret_here
@@ -66,12 +68,13 @@ C2_API_BASE_URL=https://log.concept2.com
 C2_API_VERSION=v1
 
 # App Settings
-APP_SECRET_KEY=$(openssl rand -hex 32)
+APP_SECRET_KEY=${GENERATED_SECRET_KEY}
 APP_HOST=0.0.0.0
 APP_PORT=8000
 APP_DEBUG=false
 LOG_LEVEL=INFO
 ENVEOF
+    chmod 600 "$APP_DIR/.env"
     echo ""
     echo "  ╔═══════════════════════════════════════════════════╗"
     echo "  ║  IMPORTANT: Edit .env with your Concept2 keys!   ║"
