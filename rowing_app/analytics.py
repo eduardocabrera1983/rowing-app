@@ -53,11 +53,34 @@ def compute_summary(df: pd.DataFrame) -> dict[str, Any]:
     total_distance_m = df["distance_m"].sum()
     total_time_s = df["time_seconds"].sum()
 
+    today = pd.Timestamp.now().normalize()
+    workout_days = set(df["date"].dt.normalize())
+
+    # Streak survives a same-day gap: counting from yesterday avoids resetting
+    # to 0 before today's session has been logged.
+    if today in workout_days:
+        cursor = today
+    elif today - pd.Timedelta(days=1) in workout_days:
+        cursor = today - pd.Timedelta(days=1)
+    else:
+        cursor = None
+
+    current_streak = 0
+    while cursor is not None and cursor in workout_days:
+        current_streak += 1
+        cursor -= pd.Timedelta(days=1)
+
+    last_30_m = df.loc[df["date"] >= today - pd.Timedelta(days=30), "distance_m"].sum()
+
     summary = {
         "total_workouts": len(df),
         "total_distance_km": round(total_distance_m / 1000, 2),
         "total_time_hours": round(total_time_s / 3600, 2),
         "avg_distance_m": round(df["distance_m"].mean(), 0),
+        "avg_distance_km": round(df["distance_m"].mean() / 1000, 2),
+        "longest_row_km": round(df["distance_m"].max() / 1000, 2),
+        "current_streak": current_streak,
+        "last_30_days_km": round(last_30_m / 1000, 2),
         "avg_pace_500m": _format_pace(df["pace_500m"].mean()) if df["pace_500m"].notna().any() else "N/A",
         "avg_stroke_rate": round(df["stroke_rate"].mean(), 1) if df["stroke_rate"].notna().any() else "N/A",
         "avg_calories": round(df["calories"].mean(), 0) if df["calories"].notna().any() else "N/A",

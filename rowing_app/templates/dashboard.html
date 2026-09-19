@@ -68,12 +68,28 @@
                 <h3>Days Since Last Workout</h3>
                 <p class="stat{% if summary.days_since_last is defined and summary.days_since_last > 3 %} stat-warn{% endif %}">{{ summary.days_since_last | default('–') }}{% if summary.days_since_last is defined %} day{{ 's' if summary.days_since_last != 1 }}{% endif %}</p>
             </div>
+            <div class="card">
+                <h3>Current Streak</h3>
+                <p class="stat">{{ summary.current_streak | default('0') }} day{{ 's' if summary.current_streak != 1 }}</p>
+            </div>
             <div class="card">                <h3>Total Workouts</h3>
                 <p class="stat">{{ summary.total_workouts }}</p>
             </div>
             <div class="card">
                 <h3>Total Distance</h3>
                 <p class="stat">{{ summary.total_distance_km | default('0') }} km</p>
+            </div>
+            <div class="card">
+                <h3>Avg Distance</h3>
+                <p class="stat">{{ summary.avg_distance_km | default('0') }} km</p>
+            </div>
+            <div class="card">
+                <h3>Longest Row</h3>
+                <p class="stat">{{ summary.longest_row_km | default('0') }} km</p>
+            </div>
+            <div class="card">
+                <h3>Last 30 Days</h3>
+                <p class="stat">{{ summary.last_30_days_km | default('0') }} km</p>
             </div>
             <div class="card">
                 <h3>Total Time</h3>
