@@ -237,11 +237,18 @@
                 var w = wrap.clientWidth - 16;
                 var mobile = window.innerWidth <= 768 && weeks > MOBILE_WEEKS;
 
+                // Derive the height from the column width so every cell stays square.
+                function squareHeight(cols, ml, mr, mt, mb) {
+                    var cell = (w - ml - mr) / Math.max(cols, 1);
+                    return Math.max(150, Math.min(520, Math.round(cell * 7) + mt + mb));
+                }
+
                 if (mobile) {
                     // Clamp the category axis to the most recent weeks so a phone
                     // shows readable cells instead of a squashed multi-year calendar.
                     Plotly.relayout(div, {
                         width: w,
+                        height: squareHeight(MOBILE_WEEKS, 34, 8, 46, 10),
                         'xaxis.range': [weeks - MOBILE_WEEKS - 0.5, weeks - 0.5],
                         'xaxis.tickfont.size': 9,
                         'yaxis.tickfont.size': 9,
@@ -254,6 +261,7 @@
                 } else {
                     Plotly.relayout(div, {
                         width: w,
+                        height: squareHeight(weeks, 50, 80, 70, 10),
                         'xaxis.autorange': true,
                         'xaxis.tickfont.size': 10,
                         'yaxis.tickfont.size': 11,
@@ -261,7 +269,7 @@
                         'title.font.size': 14,
                         'margin.l': 50, 'margin.r': 80, 'margin.t': 70
                     });
-                    Plotly.restyle(div, {'colorbar.thickness': 10, 'colorbar.len': 0.5,
+                    Plotly.restyle(div, {'colorbar.thickness': 10, 'colorbar.len': 0.9,
                                          'colorbar.tickfont.size': 11, 'colorbar.title.text': 'Meters'}, [0]);
                 }
             }
@@ -412,8 +420,10 @@
     // since the figures are rendered server-side with the light template baked in.
     (function () {
         var PALETTE = {
-            light: {paper: '#ffffff', plot: '#ffffff', font: '#333333', grid: '#ebedf0', line: '#cccccc'},
-            dark:  {paper: '#1a2029', plot: '#1a2029', font: '#e3e8f0', grid: '#2c3745', line: '#3a4553'}
+            light: {paper: '#ffffff', plot: '#ffffff', font: '#333333', grid: '#ebedf0', line: '#cccccc',
+                    empty: '#ebedf0'},
+            dark:  {paper: '#1a2029', plot: '#1a2029', font: '#e3e8f0', grid: '#2c3745', line: '#3a4553',
+                    empty: '#1f2630'}
         };
 
         function currentTheme() {
@@ -442,6 +452,14 @@
                     upd['annotations[' + i + '].font.color'] = c.font;
                 });
                 try { Plotly.relayout(div, upd); } catch (e) { /* leave chart as-is */ }
+
+                // Heatmap "no training" cells blend into the page background.
+                var tr = div.data && div.data[0];
+                if (tr && tr.type === 'heatmap' && tr.colorscale && tr.colorscale.length) {
+                    var cs = tr.colorscale.map(function (s) { return [s[0], s[1]]; });
+                    cs[0] = [0, c.empty];
+                    try { Plotly.restyle(div, {colorscale: [cs]}, [0]); } catch (e) { /* ignore */ }
+                }
             });
         }
 

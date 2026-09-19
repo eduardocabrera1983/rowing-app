@@ -313,17 +313,30 @@ async def _build_dashboard(request, user_resp, results, sync_info, from_date, to
         date_t = date_t[::-1]
         days_reversed = days[::-1]
 
+        # Anchor the scale to 0 → best day, so colours always describe the real range.
+        max_m = float(np.max(np.array(z_raw))) if np.size(z_raw) else 0.0
+        max_m = max(max_m, 1.0)
+        tick_step = next((c for c in (500, 1000, 2000, 2500, 5000, 10000, 20000, 25000)
+                          if max_m / c <= 6), max_m / 5)
+
         fig_heat = go.Figure(data=go.Heatmap(
             z=z_t,
             x=weeks,            # X-axis: weeks (many columns)
             y=days_reversed,    # Y-axis: Mon–Sun (7 rows)
             customdata=date_t,
+            zmin=0,
+            zmax=max_m,
+            # Stops are packed towards the low end so short and medium sessions
+            # stay distinguishable instead of collapsing into one green.
+            # Stop 0 (no training) is re-coloured per theme by the dashboard script.
             colorscale=[
-                [0.0, "#ebedf0"], [0.001, "#9be9a8"],
-                [0.25, "#40c463"], [0.5, "#30a14e"], [1.0, "#216e39"],
+                [0.0, "#1f2630"], [0.001, "#dcf9df"], [0.06, "#b7f0bd"],
+                [0.14, "#86e39b"], [0.26, "#57cf7c"], [0.42, "#3bb464"],
+                [0.65, "#2a9350"], [1.0, "#15703a"],
             ],
             hovertemplate="Date: %{customdata}<br>Distance: %{z:,.0f}m<extra></extra>",
-            colorbar=dict(title="Meters", thickness=10, len=0.5),
+            colorbar=dict(title="Meters", thickness=10, len=0.9,
+                          tick0=0, dtick=tick_step, tickformat="~s"),
             xgap=4,
             ygap=4,
         ))
