@@ -388,5 +388,127 @@
                &middot; Source: local database (syncs every 24h)</p>
         </footer>
     </div>
+
+    <script>
+    // Plotly's default margins consume ~160px, which leaves almost no plot area on a
+    // phone. Re-layout every chart for narrow screens and stack side-by-side subplots.
+    (function () {
+        var BREAKPOINT = 768;
+        var PLOTLY_DEFAULT_MARGIN = {l: 80, r: 80, t: 100, b: 80};
+        var snapshots = new WeakMap();
+
+        function axisKeys(layout, prefix) {
+            return Object.keys(layout)
+                .filter(function (k) { return new RegExp('^' + prefix + '\\d*$').test(k); })
+                .sort(function (a, b) {
+                    return (parseInt(a.replace(prefix, ''), 10) || 1) - (parseInt(b.replace(prefix, ''), 10) || 1);
+                });
+        }
+
+        function snapshot(div) {
+            if (snapshots.has(div)) return snapshots.get(div);
+            var l = div.layout || {};
+            var snap = {
+                margin: Object.keys(l.margin || {}).length ? Object.assign({}, l.margin) : PLOTLY_DEFAULT_MARGIN,
+                height: l.height,
+                legend: l.legend ? JSON.parse(JSON.stringify(l.legend)) : null,
+                annotations: l.annotations ? JSON.parse(JSON.stringify(l.annotations)) : null,
+                domains: {}
+            };
+            axisKeys(l, 'xaxis').concat(axisKeys(l, 'yaxis')).forEach(function (k) {
+                if (l[k] && l[k].domain) snap.domains[k] = l[k].domain.slice();
+            });
+            snapshots.set(div, snap);
+            return snap;
+        }
+
+        function isMultiColumn(layout) {
+            var seen = {};
+            var n = 0;
+            axisKeys(layout, 'xaxis').forEach(function (k) {
+                var d = JSON.stringify((layout[k] || {}).domain || []);
+                if (!seen[d]) { seen[d] = 1; n++; }
+            });
+            return n > 1;
+        }
+
+        function tune(div, width) {
+            var snap = snapshot(div);
+            var l = div.layout || {};
+            var mobile = window.innerWidth <= BREAKPOINT;
+            var xs = axisKeys(l, 'xaxis');
+            var upd = {width: width};
+
+            if (!mobile) {
+                upd.margin = snap.margin;
+                upd.height = snap.height;
+                if (snap.legend) upd.legend = snap.legend;
+                if (snap.annotations) upd.annotations = snap.annotations;
+                Object.keys(snap.domains).forEach(function (k) { upd[k + '.domain'] = snap.domains[k]; });
+                upd['font.size'] = 12;
+                return Plotly.relayout(div, upd);
+            }
+
+            upd.margin = {l: 46, r: 14, t: 44, b: 40};
+            upd['font.size'] = 10;
+            upd['title.font.size'] = 12;
+
+            if (l.showlegend !== false) {
+                upd.legend = {orientation: 'h', x: 0, xanchor: 'left', y: -0.12,
+                              yanchor: 'top', font: {size: 9}};
+            }
+
+            if (xs.length > 1 && isMultiColumn(l)) {
+                // Side-by-side panels are unreadable at ~250px, so give each its own row.
+                var n = xs.length;
+                var gap = 0.06;
+                var band = (1 - gap * (n - 1)) / n;
+                var tops = [];
+                xs.forEach(function (xk, i) {
+                    var yk = xk.replace('xaxis', 'yaxis');
+                    var bottom = (n - 1 - i) * (band + gap);
+                    tops.push(bottom + band);
+                    upd[xk + '.domain'] = [0, 1];
+                    upd[yk + '.domain'] = [bottom, bottom + band];
+                });
+                upd.height = n * 260 + 120;
+                if (snap.annotations && snap.annotations.length >= n) {
+                    var anns = JSON.parse(JSON.stringify(snap.annotations));
+                    for (var i = 0; i < n; i++) {
+                        anns[i].x = 0.5;
+                        anns[i].y = tops[i] + 0.012;
+                        anns[i].xanchor = 'center';
+                        anns[i].yanchor = 'bottom';
+                        anns[i].font = Object.assign({}, anns[i].font, {size: 11});
+                    }
+                    upd.annotations = anns;
+                }
+            } else if (snap.height) {
+                upd.height = l.showlegend !== false ? snap.height + 60 : snap.height;
+            }
+
+            return Plotly.relayout(div, upd);
+        }
+
+        function tuneAll() {
+            if (!window.Plotly) return;
+            document.querySelectorAll('.chart-container').forEach(function (wrap) {
+                if (wrap.id === 'heatmap-container') return;  // has its own handler
+                var div = wrap.querySelector('.plotly-graph-div');
+                if (!div || !div.layout) return;
+                try { tune(div, wrap.clientWidth - 16); } catch (e) { /* leave chart as-is */ }
+            });
+        }
+
+        if (document.readyState === 'complete') { tuneAll(); }
+        else { window.addEventListener('load', tuneAll); }
+
+        var t;
+        window.addEventListener('resize', function () {
+            clearTimeout(t);
+            t = setTimeout(tuneAll, 200);
+        });
+    })();
+    </script>
 </body>
 </html>
