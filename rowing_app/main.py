@@ -388,7 +388,7 @@ async def _build_dashboard(request, user_resp, results, sync_info, from_date, to
     # ── Pace Trend Regression ─────────────────────
     if regression:
         import plotly.graph_objects as go
-        # Build gradient colorscale: green (faster) → gold → red (slower)
+        # Gradient within the brand palette: green (faster) -> sky -> muted indigo (slower)
         paces_arr = regression["paces"]
         pace_min = min(paces_arr)
         pace_max = max(paces_arr)
@@ -398,8 +398,8 @@ async def _build_dashboard(request, user_resp, results, sync_info, from_date, to
         colorscale = [
             [0, "#11BF7F"],
             [green_threshold, "#11BF7F"],
-            [yellow_threshold, "gold"],
-            [1, "red"],
+            [yellow_threshold, "#79BAF2"],
+            [1, "#606EBF"],
         ]
         fig_reg = go.Figure()
         # Trace 0: Actual Pace (gradient-colored dots)
@@ -426,7 +426,7 @@ async def _build_dashboard(request, user_resp, results, sync_info, from_date, to
         # Trace 2 (invisible legend ref): Slower
         fig_reg.add_trace(go.Scatter(
             x=[None], y=[None], mode="markers",
-            marker=dict(size=10, color="red"),
+            marker=dict(size=10, color="#606EBF"),
             name="Slower",
         ))
         # Trace 3: Linear
@@ -445,7 +445,7 @@ async def _build_dashboard(request, user_resp, results, sync_info, from_date, to
         fig_reg.add_trace(go.Scatter(
             x=regression["dates"], y=regression["rolling_avg"],
             mode="lines", name="10-workout Rolling Avg",
-            line=dict(color="#79BAF2", width=2),
+            line=dict(color="#9AA6F8", width=2),
         ))
         # M:SS y-axis
         all_paces = [p for p in regression["paces"] if p is not None]
@@ -475,19 +475,19 @@ async def _build_dashboard(request, user_resp, results, sync_info, from_date, to
         from plotly.subplots import make_subplots
         # Fixed colors mapped to labels (left→right = Sprint → Endurance)
         label_colors = {
-            "Sprint": "#FFC107",
-            "5K Steady-State": "#79BAF2",
+            "Sprint": "#79BAF2",
+            "5K Steady-State": "#11BF7F",
             "Mid-Distance (5-10K)": "#6379F2",
-            "10K Steady-State": "#FF5722",
-            "Endurance 10K+": "#11BF7F",
+            "10K Steady-State": "#5BD9A8",
+            "Endurance 10K+": "#606EBF",
         }
         # Variant shades for "(High Intensity)" suffixed labels
         label_colors_hi = {
-            "Sprint": "#FFD54F",
-            "5K Steady-State": "#A9D4F7",
+            "Sprint": "#C2E0FA",
+            "5K Steady-State": "#7FE6C0",
             "Mid-Distance (5-10K)": "#8E9DF6",
-            "10K Steady-State": "#FF8A65",
-            "Endurance 10K+": "#5BD9A8",
+            "10K Steady-State": "#9BEBD1",
+            "Endurance 10K+": "#8C97D6",
         }
         def _get_color(label, idx):
             if label in label_colors:
@@ -496,7 +496,7 @@ async def _build_dashboard(request, user_resp, results, sync_info, from_date, to
             base = label.replace(" (High Intensity)", "")
             if base in label_colors_hi:
                 return label_colors_hi[base]
-            return ["#00BCD4", "#E91E63", "#795548", "#607D8B"][idx % 4]
+            return ["#79BAF2", "#11BF7F", "#6379F2", "#606EBF"][idx % 4]
 
         # Cluster scatter (Distance vs Pace)
         fig_cl = make_subplots(
