@@ -452,6 +452,23 @@ def stroke_detail_chart(points: list[dict]) -> str | None:
     spms = [p.get("spm") for p in points]
     hrs = [p.get("hr") for p in points]
 
+    # PM5 occasionally reports impossible stroke-rate spikes; blank them out.
+    spms = [s if s is not None and 0 < s <= 60 else None for s in spms]
+
+    def _rolling_mean(values: list, window: int = 9) -> list:
+        """Centered rolling mean that skips None values."""
+        half = window // 2
+        out = []
+        for i in range(len(values)):
+            chunk = [v for v in values[max(0, i - half):i + half + 1] if v is not None]
+            out.append(sum(chunk) / len(chunk) if chunk else None)
+        return out
+
+    # Per-stroke pace jitters +-2-4 s/500m, which renders as a blurry double
+    # line; a smoothed trace carries the signal while the raw strokes stay
+    # visible as a faint backdrop.
+    paces_smooth = _rolling_mean(paces)
+
     has_hr = any(h is not None and h > 0 for h in hrs)
 
     rows = 3 if has_hr else 2
@@ -468,7 +485,16 @@ def stroke_detail_chart(points: list[dict]) -> str | None:
     fig.add_trace(
         go.Scatter(
             x=times_min, y=paces, mode="lines",
-            line=dict(color="#3b82f6", width=2),
+            line=dict(color="rgba(59,130,246,0.25)", width=1),
+            name="Pace (per stroke)",
+            hovertemplate="%{x:.2f} min<br>%{y:.1f} s/500m<extra></extra>",
+        ),
+        row=1, col=1,
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=times_min, y=paces_smooth, mode="lines",
+            line=dict(color="#3b82f6", width=2.5),
             name="Pace", hovertemplate="%{x:.2f} min<br>%{y:.1f} s/500m<extra></extra>",
         ),
         row=1, col=1,
