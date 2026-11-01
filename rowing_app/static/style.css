@@ -295,15 +295,6 @@ footer a { color: var(--c2-accent); }
     color: var(--text-soft);
     flex: 1 1 240px;
 }
-.technique-business {
-    display: block;
-    flex: 1 1 100%;
-    margin-top: 0.3rem;
-    font-weight: 600;
-    color: var(--c2-accent);
-    font-size: 0.8rem;
-    letter-spacing: 0.02em;
-}
 .technique-link {
     margin-left: 0.5rem;
     font-weight: 600;
@@ -316,24 +307,6 @@ footer a { color: var(--c2-accent); }
 .technique-link:hover {
     opacity: 1;
     text-decoration: underline;
-}
-.technique-cases {
-    display: block;
-    flex: 1 1 100%;
-    margin-top: 0.4rem;
-    padding: 0.5rem 0.7rem;
-    background: var(--tint);
-    border-radius: 4px;
-    font-size: 0.8rem;
-    color: var(--text-soft);
-    line-height: 1.55;
-}
-.technique-cases strong {
-    color: var(--c2-blue);
-}
-.technique-cases em {
-    color: var(--text-soft);
-    font-style: italic;
 }
 
 /* ── Business Applications Showcase ── */
@@ -449,7 +422,7 @@ footer a { color: var(--c2-accent); }
     .card { padding: 0.9rem 0.6rem; }
     .card h3 { font-size: 0.7rem; }
 
-    /* Stacking prevents the label/text/business columns collapsing to one word per line. */
+    /* Stacking prevents the label/text columns collapsing to one word per line. */
     .technique-hint { flex-direction: column; align-items: stretch; gap: 0.35rem; }
     /* flex-basis becomes height once stacked, so reset it or children inflate. */
     .technique-hint > * { flex: 0 1 auto; }

@@ -71,12 +71,6 @@
         <div class="technique-hint">
             <span class="technique-label">&#x1F4CA; Descriptive Statistics</span>
             <span class="technique-text">Aggregation functions (mean, sum, min/max) compute KPIs from raw data.</span>
-            <span class="technique-business">&#x1F4BC; Executive dashboards &middot; Operational KPIs &middot; Anomaly detection</span>
-            <div class="technique-cases">
-                <strong>Business case:</strong> Just as these cards track rowing KPIs (total distance, avg pace, streak), the same approach builds
-                <em>executive dashboards</em> that monitor <strong>revenue per customer (ARPU)</strong>, <strong>conversion rates</strong>,
-                and <strong>operational efficiency ratios</strong> &mdash; alerting when metrics breach thresholds.
-            </div>
         </div>
         <section class="summary-cards">
             <div class="card">                <h3>Last Workout</h3>
@@ -182,14 +176,8 @@
         <section class="charts">
             <div class="technique-hint">
                 <span class="technique-label">&#x1F4C8; Time Series Analysis</span>
-                <span class="technique-text">Temporal aggregation groups data into weekly/monthly buckets using Pandas groupby to reveal volume trends and seasonality.</span>
-                <span class="technique-business">&#x1F4BC; Revenue trending &middot; Demand forecasting &middot; Seasonal planning</span>
-                <div class="technique-cases">
-                    <strong>Business case:</strong> Monthly/weekly volume charts here mirror how businesses track
-                    <strong>monthly revenue trends</strong> and <strong>seasonal demand patterns</strong>.
-                    Spot dips before they become problems &mdash; forecast next quarter&rsquo;s demand and optimize <strong>inventory levels</strong> accordingly.
-                </div>
-            </div>
+                <span class="technique-text">Temporal aggregation groups data into weekly/monthly buckets using Pandas groupby                 to reveal volume trends and seasonality.</span>
+                            </div>
             {% if charts.monthly_distance %}
             <div class="chart-container">
                 {{ charts.monthly_distance | safe }}
@@ -212,14 +200,8 @@
             <p class="section-desc">A GitHub-style calendar showing my daily rowing volume. Darker green = more meters.</p>
             <div class="technique-hint">
                 <span class="technique-label">&#x1F5D3;&#xFE0F; Matrix Transposition &amp; Heatmap Visualization</span>
-                <span class="technique-text">NumPy matrix transposition maps daily values into a weeks &times; weekdays grid. Custom colorscale encodes intensity.</span>
-                <span class="technique-business">&#x1F4BC; User engagement patterns &middot; Website traffic analysis &middot; Activity monitoring</span>
-                <div class="technique-cases">
-                    <strong>Business case:</strong> This heatmap reveals <em>when</em> I train most. For a business, the same visualization shows
-                    <strong>daily/weekly active users (DAU/WAU)</strong>, peak <strong>session times by channel</strong>,
-                    and <strong>feature adoption rates</strong> &mdash; answering <em>&ldquo;when and how often do customers engage?&rdquo;</em>
-                </div>
-            </div>
+                <span class="technique-text">NumPy matrix transposition maps daily values into a weeks &times; weekdays grid.                 Custom colorscale encodes intensity.</span>
+                            </div>
             <div class="chart-container" id="heatmap-container">
                 {{ charts.heatmap | safe }}
             </div>
@@ -292,14 +274,8 @@
             <h2>&#x1F4C8; Pace Trend Analysis</h2>
             <div class="technique-hint">
                 <span class="technique-label">&#x1F4C9; Linear &amp; Polynomial Regression</span>
-                <span class="technique-text">OLS linear regression and degree-3 polynomial fit model trends over time. R&sup2; measures goodness of fit. Rolling average smooths noise.</span>
-                <span class="technique-business">&#x1F4BC; Sales forecasting &middot; Price prediction &middot; Performance trajectory modeling</span>
-                <div class="technique-cases">
-                    <strong>Business case:</strong> The regression line predicting my pace trend is the same math behind
-                    <strong>sales forecasting</strong> and <strong>price prediction models</strong>.
-                    R&sup2; tells you how reliable the forecast is. Use it to project <strong>growth trajectories</strong> and set data-backed targets.
-                </div>
-            </div>
+                <span class="technique-text">OLS linear regression and degree-3 polynomial fit model trends over time. R&sup2; measures goodness of fit.                 Rolling average smooths noise.</span>
+                            </div>
             <div class="regression-controls">
                 <p class="section-desc">
                     Regression analysis reveals whether my pace is improving over time.
@@ -359,14 +335,8 @@
             <h2>&#x1F3AF; Workout Clusters (K-Means)</h2>
             <div class="technique-hint">
                 <span class="technique-label">&#x1F3AF; K-Means Clustering (Unsupervised ML)</span>
-                <span class="technique-text">K-Means algorithm with StandardScaler feature normalization discovers natural workout groupings from distance, pace, and duration. Elbow method evaluates optimal K.</span>
-                <span class="technique-business">&#x1F4BC; Customer segmentation &middot; Market basket analysis &middot; User behavior profiling</span>
-                <div class="technique-cases">
-                    <strong>Business case:</strong> K-Means groups my workouts into Sprint, 5K, 10K, etc. The same algorithm segments
-                    <strong>customers by CLV and behavior</strong>, builds <strong>RFM scores</strong> (Recency, Frequency, Monetary),
-                    identifies <strong>churn-risk cohorts</strong>, and powers <strong>market basket analysis</strong> to find cross-sell opportunities.
-                </div>
-            </div>
+                <span class="technique-text">K-Means algorithm with StandardScaler feature normalization discovers natural workout groupings from distance, pace, and duration.                 Elbow method evaluates optimal K.</span>
+                            </div>
             <p class="section-desc">Machine learning groups my workouts into 5 categories based on distance, pace, and duration.</p>
 
             {% if clustering and clustering.category_profiles %}
@@ -393,14 +363,8 @@
             <h2>&#x1F4CA; Training Balance</h2>
             <div class="technique-hint">
                 <span class="technique-label">&#x1F967; Distribution Analysis</span>
-                <span class="technique-text">Proportional analysis of cluster assignments reveals how training effort is allocated across categories.</span>
-                <span class="technique-business">&#x1F4BC; Portfolio allocation &middot; Resource distribution &middot; Market share analysis</span>
-                <div class="technique-cases">
-                    <strong>Business case:</strong> The pie chart shows how my training is distributed. For business, this same analysis drives
-                    <strong>budget allocation efficiency</strong>, compares <strong>channel ROI</strong>,
-                    measures <strong>market share by segment</strong>, and identifies where <strong>capacity is over- or under-utilized</strong>.
-                </div>
-            </div>
+                <span class="technique-text">Proportional analysis of cluster assignments reveals                 how training effort is allocated across categories.</span>
+                            </div>
             <p class="section-desc">What percentage of my workouts fall into each category?</p>
             <div class="chart-container">
                 {{ charts.cluster_pie | safe }}
