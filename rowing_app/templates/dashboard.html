@@ -15,7 +15,8 @@
         })();
     </script>
     <link rel="stylesheet" href="{{ static_url('style.css') }}">
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <!-- Local copy of the exact plotly.js bundled with plotly.py; the CDN "latest" is frozen at v1.58.5 (2021) and misrenders modern figures (duplicated trace layers). -->
+    <script src="/static/plotly.min.js"></script>
 </head>
 <body>
     <div class="container">
