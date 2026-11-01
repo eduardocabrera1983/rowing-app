@@ -485,7 +485,7 @@ def stroke_detail_chart(points: list[dict]) -> str | None:
     fig.add_trace(
         go.Scatter(
             x=times_min, y=paces, mode="lines",
-            line=dict(color="rgba(59,130,246,0.25)", width=1),
+            line=dict(color="rgba(99,121,242,0.3)", width=1),
             name="Pace (per stroke)",
             hovertemplate="%{x:.2f} min<br>%{y:.1f} s/500m<extra></extra>",
         ),
@@ -494,7 +494,7 @@ def stroke_detail_chart(points: list[dict]) -> str | None:
     fig.add_trace(
         go.Scatter(
             x=times_min, y=paces_smooth, mode="lines",
-            line=dict(color="#3b82f6", width=2.5),
+            line=dict(color="#6379F2", width=2.5),
             name="Pace", hovertemplate="%{x:.2f} min<br>%{y:.1f} s/500m<extra></extra>",
         ),
         row=1, col=1,
@@ -502,7 +502,7 @@ def stroke_detail_chart(points: list[dict]) -> str | None:
     fig.add_trace(
         go.Scatter(
             x=times_min, y=spms, mode="lines",
-            line=dict(color="#10b981", width=2),
+            line=dict(color="#11BF7F", width=2),
             name="Stroke Rate",
             hovertemplate="%{x:.2f} min<br>%{y} spm<extra></extra>",
         ),

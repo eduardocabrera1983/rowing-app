@@ -284,6 +284,7 @@ async def _build_dashboard(request, user_resp, results, sync_info, from_date, to
             labels={"month": "Month", "total_distance_km": "Distance (km)"},
         )
         fig_monthly.update_layout(template="plotly_white")
+        fig_monthly.update_traces(marker_color="#6379F2")
         charts["monthly_distance"] = pio.to_html(fig_monthly, full_html=False, config={"responsive": True})
 
     if not weekly.empty:
@@ -295,6 +296,7 @@ async def _build_dashboard(request, user_resp, results, sync_info, from_date, to
             labels={"year_week": "Week", "total_distance_km": "Distance (km)"},
         )
         fig_weekly.update_layout(template="plotly_white")
+        fig_weekly.update_traces(marker_color="#79BAF2")
         charts["weekly_distance"] = pio.to_html(fig_weekly, full_html=False, config={"responsive": True})
 
     # ── Training Heatmap (GitHub-style) ───────────
@@ -330,9 +332,9 @@ async def _build_dashboard(request, user_resp, results, sync_info, from_date, to
             # stay distinguishable instead of collapsing into one green.
             # Stop 0 (no training) is re-coloured per theme by the dashboard script.
             colorscale=[
-                [0.0, "#1f2630"], [0.001, "#dcf9df"], [0.06, "#b7f0bd"],
-                [0.14, "#86e39b"], [0.26, "#57cf7c"], [0.42, "#3bb464"],
-                [0.65, "#2a9350"], [1.0, "#15703a"],
+                [0.0, "#1f2630"], [0.001, "#d9f7eb"], [0.06, "#aeeed5"],
+                [0.14, "#7ce2bb"], [0.26, "#4cd3a0"], [0.42, "#11bf7f"],
+                [0.65, "#0e9664"], [1.0, "#0a6b48"],
             ],
             hovertemplate="Date: %{customdata}<br>Distance: %{z:,.0f}m<extra></extra>",
             colorbar=dict(title="Meters", thickness=10, len=0.9,
@@ -394,8 +396,8 @@ async def _build_dashboard(request, user_resp, results, sync_info, from_date, to
         green_threshold = min(max((160 - pace_min) / pace_range, 0), 1)
         yellow_threshold = min(green_threshold + 0.1, 1)
         colorscale = [
-            [0, "green"],
-            [green_threshold, "green"],
+            [0, "#11BF7F"],
+            [green_threshold, "#11BF7F"],
             [yellow_threshold, "gold"],
             [1, "red"],
         ]
@@ -418,7 +420,7 @@ async def _build_dashboard(request, user_resp, results, sync_info, from_date, to
         # Trace 1 (invisible legend ref): Faster
         fig_reg.add_trace(go.Scatter(
             x=[None], y=[None], mode="markers",
-            marker=dict(size=10, color="green"),
+            marker=dict(size=10, color="#11BF7F"),
             name="Faster",
         ))
         # Trace 2 (invisible legend ref): Slower
@@ -431,19 +433,19 @@ async def _build_dashboard(request, user_resp, results, sync_info, from_date, to
         fig_reg.add_trace(go.Scatter(
             x=regression["dates"], y=regression["trend_y"],
             mode="lines", name=f"Linear (R\u00b2={regression['r_squared']:.2f})",
-            line=dict(color="red", width=2, dash="dash"),
+            line=dict(color="#6379F2", width=2, dash="dash"),
         ))
         # Trace 4: Polynomial
         fig_reg.add_trace(go.Scatter(
             x=regression["dates"], y=regression["poly_y"],
             mode="lines", name=f"Polynomial deg {regression['poly_degree']} (R\u00b2={regression['poly_r_squared']:.2f})",
-            line=dict(color="#9C27B0", width=2.5),
+            line=dict(color="#606EBF", width=2.5),
         ))
         # Trace 5: Rolling Avg
         fig_reg.add_trace(go.Scatter(
             x=regression["dates"], y=regression["rolling_avg"],
             mode="lines", name="10-workout Rolling Avg",
-            line=dict(color="#03A9F4", width=2),
+            line=dict(color="#79BAF2", width=2),
         ))
         # M:SS y-axis
         all_paces = [p for p in regression["paces"] if p is not None]
@@ -474,18 +476,18 @@ async def _build_dashboard(request, user_resp, results, sync_info, from_date, to
         # Fixed colors mapped to labels (left→right = Sprint → Endurance)
         label_colors = {
             "Sprint": "#FFC107",
-            "5K Steady-State": "#2196F3",
-            "Mid-Distance (5-10K)": "#9C27B0",
+            "5K Steady-State": "#79BAF2",
+            "Mid-Distance (5-10K)": "#6379F2",
             "10K Steady-State": "#FF5722",
-            "Endurance 10K+": "#4CAF50",
+            "Endurance 10K+": "#11BF7F",
         }
         # Variant shades for "(High Intensity)" suffixed labels
         label_colors_hi = {
             "Sprint": "#FFD54F",
-            "5K Steady-State": "#64B5F6",
-            "Mid-Distance (5-10K)": "#BA68C8",
+            "5K Steady-State": "#A9D4F7",
+            "Mid-Distance (5-10K)": "#8E9DF6",
             "10K Steady-State": "#FF8A65",
-            "Endurance 10K+": "#81C784",
+            "Endurance 10K+": "#5BD9A8",
         }
         def _get_color(label, idx):
             if label in label_colors:

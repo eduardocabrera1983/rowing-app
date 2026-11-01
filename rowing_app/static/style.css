@@ -1,10 +1,10 @@
 ﻿/* ÔöÇÔöÇ Concept2 Rowing Analytics ÔÇô Styles ÔöÇÔöÇ */
 
 :root {
-    --c2-blue: #003366;
+    --c2-blue: #606EBF;
     --c2-light: #e8f0fe;
-    --c2-accent: #0066cc;
-    --c2-accent-hover: #0055aa;
+    --c2-accent: #6379F2;
+    --c2-accent-hover: #606EBF;
     --radius: 8px;
 
     color-scheme: light;
@@ -25,8 +25,8 @@
     --btn-secondary-bg: #ddd;
     --btn-secondary-text: #333;
     --tint: rgba(0, 51, 102, 0.04);
-    --badge-green-bg: #d4edda;
-    --badge-green-text: #155724;
+    --badge-green-bg: #d3f5e8;
+    --badge-green-text: #0b7a52;
     --badge-red-bg: #f8d7da;
     --badge-red-text: #721c24;
     --warn: #d35400;
@@ -34,10 +34,10 @@
 }
 
 [data-theme="dark"] {
-    --c2-blue: #7fb6ff;
+    --c2-blue: #79BAF2;
     --c2-light: #1c2533;
-    --c2-accent: #4d9fff;
-    --c2-accent-hover: #6fb2ff;
+    --c2-accent: #6379F2;
+    --c2-accent-hover: #79BAF2;
 
     color-scheme: dark;
     --bg: #11151c;
@@ -57,8 +57,8 @@
     --btn-secondary-bg: #2c3745;
     --btn-secondary-text: #e3e8f0;
     --tint: rgba(255, 255, 255, 0.04);
-    --badge-green-bg: #14361f;
-    --badge-green-text: #8fe0a6;
+    --badge-green-bg: #0e3328;
+    --badge-green-text: #3fd9a4;
     --badge-red-bg: #3a191d;
     --badge-red-text: #f1a0a8;
     --warn: #ff9f5a;
