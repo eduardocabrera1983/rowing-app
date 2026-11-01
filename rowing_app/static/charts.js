@@ -496,8 +496,7 @@
                 tooltip: Object.assign(baseOption(c).tooltip, {
                     trigger: 'axis',
                     formatter: function (ps) {
-                        var p = ps[0];
-                        return fmtVal(p.value[0]) + '<br>density: ' + p.value[1].toExponential(2);
+                        return fmtVal(ps[0].value[0]);
                     }
                 }),
                 grid: { left: 50, right: 30, top: 70, bottom: 50 },
