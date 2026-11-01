@@ -272,7 +272,8 @@
                         min: 0, max: d.max, type: 'continuous', orient: 'horizontal',
                         left: 'center', bottom: 0, text: ['more', 'less'],
                         textStyle: { color: c.textSoft }, itemHeight: 90,
-                        inRange: { color: ['#d9f7eb', '#7ce2bb', '#11bf7f', '#0e9664', '#0a6b48'] }
+                        // Brand ramp: violet (light days) -> sky -> green -> amber (biggest days)
+                        inRange: { color: [PALETTE.violet, PALETTE.sky, PALETTE.green, PALETTE.amber] }
                     },
                     calendar: calendars,
                     series: series
