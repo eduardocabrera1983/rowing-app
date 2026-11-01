@@ -17,24 +17,26 @@
         skyLight: '#A9D4F7',
         green: '#11BF7F',
         mint: '#5BD9A8',
+        violet: '#9B6BF2',
+        amber: '#F2B33D',
         red: '#ef4444'
     };
 
     var CLUSTER_COLORS = {
-        'Sprint': PALETTE.sky,
+        'Sprint': PALETTE.amber,
         '5K Steady-State': PALETTE.green,
         'Mid-Distance (5-10K)': PALETTE.indigo,
-        '10K Steady-State': PALETTE.mint,
-        'Endurance 10K+': PALETTE.indigoMuted
+        '10K Steady-State': PALETTE.sky,
+        'Endurance 10K+': PALETTE.violet
     };
     var CLUSTER_COLORS_HI = {
-        'Sprint': '#C2E0FA',
+        'Sprint': '#F7CE7E',
         '5K Steady-State': '#7FE6C0',
         'Mid-Distance (5-10K)': '#8E9DF6',
-        '10K Steady-State': '#9BEBD1',
-        'Endurance 10K+': '#8C97D6'
+        '10K Steady-State': '#C2E0FA',
+        'Endurance 10K+': '#BFA3F7'
     };
-    var FALLBACK_COLORS = [PALETTE.sky, PALETTE.green, PALETTE.indigo, PALETTE.indigoMuted];
+    var FALLBACK_COLORS = [PALETTE.sky, PALETTE.green, PALETTE.indigo, PALETTE.violet, PALETTE.amber];
 
     function clusterColor(label, idx) {
         if (CLUSTER_COLORS[label]) return CLUSTER_COLORS[label];
