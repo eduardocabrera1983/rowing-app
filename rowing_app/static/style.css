@@ -270,6 +270,7 @@ header nav { display: flex; align-items: center; gap: 1rem; }
 /* ÔöÇÔöÇ Footer ÔöÇÔöÇ */
 footer { text-align: center; padding-top: 2rem; color: var(--text-faint); font-size: 0.85rem; }
 footer a { color: var(--c2-accent); }
+footer .disclaimer { font-size: 0.75rem; opacity: 0.8; max-width: 640px; margin: 0.4rem auto 0; }
 
 /* ── Technique Hints (inline) ── */
 .technique-hint {
