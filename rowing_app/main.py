@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import hashlib
+import json
+import math
 import os
 import secrets
 import traceback
 from typing import Optional
 
-import plotly.express as px
-import plotly.io as pio
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -19,12 +19,12 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from .analytics import (
     compute_summary,
+    daily_distance_data,
     monthly_volume,
     pace_trend_regression,
     personal_bests,
     results_to_dataframe,
-    stroke_detail_chart,
-    training_heatmap_data,
+    stroke_detail_data,
     weekly_volume,
     workout_clustering,
 )
@@ -253,7 +253,7 @@ async def _build_dashboard(request, user_resp, results, sync_info, from_date, to
     pbs = personal_bests(df)
     monthly = monthly_volume(df)
     weekly = weekly_volume(df)
-    heatmap = training_heatmap_data(df)
+    heatmap = daily_distance_data(df)
     regression = pace_trend_regression(df)
     clustering = workout_clustering(df, n_clusters=4)
 
@@ -273,313 +273,72 @@ async def _build_dashboard(request, user_resp, results, sync_info, from_date, to
     else:
         stroke_points = []
 
-    # Build Plotly charts (as HTML snippets)
-    charts = {}
+    # ?? Chart data (rendered client-side with Apache ECharts) ??
+    charts: dict = {}
+
     if not monthly.empty:
-        fig_monthly = px.bar(
-            monthly,
-            x="month",
-            y="total_distance_km",
-            title="Monthly Distance (km)",
-            labels={"month": "Month", "total_distance_km": "Distance (km)"},
-        )
-        fig_monthly.update_layout(template="plotly_white")
-        fig_monthly.update_traces(marker_color="#6379F2")
-        charts["monthly_distance"] = pio.to_html(fig_monthly, full_html=False, config={"responsive": True})
+        charts["monthly_distance"] = {
+            "labels": monthly["month"].tolist(),
+            "km": [float(v) for v in monthly["total_distance_km"]],
+        }
 
     if not weekly.empty:
-        fig_weekly = px.bar(
-            weekly,
-            x="year_week",
-            y="total_distance_km",
-            title="Weekly Distance (km)",
-            labels={"year_week": "Week", "total_distance_km": "Distance (km)"},
-        )
-        fig_weekly.update_layout(template="plotly_white")
-        fig_weekly.update_traces(marker_color="#79BAF2")
-        charts["weekly_distance"] = pio.to_html(fig_weekly, full_html=False, config={"responsive": True})
+        charts["weekly_distance"] = {
+            "labels": weekly["year_week"].tolist(),
+            "km": [float(v) for v in weekly["total_distance_km"]],
+        }
 
-    # ── Training Heatmap (GitHub-style) ───────────
     if heatmap:
-        import plotly.graph_objects as go
-        import numpy as np
-        z_raw = heatmap["z_values"]
-        date_raw = heatmap["date_labels"]
-        # Transpose: GitHub has weeks on X-axis, weekdays on Y-axis
-        z_t = np.array(z_raw).T.tolist()  # shape: 7 days × N weeks
-        date_t = np.array(date_raw).T.tolist()  # matching shape
-        weeks = heatmap["weeks"]
-        days = heatmap["days"]  # ["Mon", "Tue", ..., "Sun"]
-        # Reverse days so Mon is at the top (GitHub style)
-        z_t = z_t[::-1]
-        date_t = date_t[::-1]
-        days_reversed = days[::-1]
+        charts["heatmap"] = heatmap
 
-        # Anchor the scale to 0 → best day, so colours always describe the real range.
-        max_m = float(np.max(np.array(z_raw))) if np.size(z_raw) else 0.0
-        max_m = max(max_m, 1.0)
-        tick_step = next((c for c in (500, 1000, 2000, 2500, 5000, 10000, 20000, 25000)
-                          if max_m / c <= 6), max_m / 5)
-
-        fig_heat = go.Figure(data=go.Heatmap(
-            z=z_t,
-            x=weeks,            # X-axis: weeks (many columns)
-            y=days_reversed,    # Y-axis: Mon–Sun (7 rows)
-            customdata=date_t,
-            zmin=0,
-            zmax=max_m,
-            # Stops are packed towards the low end so short and medium sessions
-            # stay distinguishable instead of collapsing into one green.
-            # Stop 0 (no training) is re-coloured per theme by the dashboard script.
-            colorscale=[
-                [0.0, "#1f2630"], [0.001, "#d9f7eb"], [0.06, "#aeeed5"],
-                [0.14, "#7ce2bb"], [0.26, "#4cd3a0"], [0.42, "#11bf7f"],
-                [0.65, "#0e9664"], [1.0, "#0a6b48"],
-            ],
-            hovertemplate="Date: %{customdata}<br>Distance: %{z:,.0f}m<extra></extra>",
-            colorbar=dict(title="Meters", thickness=10, len=0.9,
-                          tick0=0, dtick=tick_step, tickformat="~s"),
-            xgap=4,
-            ygap=4,
-        ))
-        # Build month labels: show "Jan", "Feb", … at the first week of each month
-        import re
-        month_map = {
-            "01": "Jan", "02": "Feb", "03": "Mar", "04": "Apr",
-            "05": "May", "06": "Jun", "07": "Jul", "08": "Aug",
-            "09": "Sep", "10": "Oct", "11": "Nov", "12": "Dec",
-        }
-        tick_vals, tick_text = [], []
-        seen_months = set()
-        for w in weeks:
-            m = re.search(r"(\d{4})-W(\d{2})", w)
-            if m:
-                yr, wk = int(m.group(1)), int(m.group(2))
-                # approximate month from ISO week
-                from datetime import date
-                try:
-                    d = date.fromisocalendar(yr, wk, 1)
-                    key = f"{d.year}-{d.month:02d}"
-                    if key not in seen_months:
-                        seen_months.add(key)
-                        tick_vals.append(w)
-                        tick_text.append(f"{month_map[f'{d.month:02d}']} {d.year}")
-                except Exception:
-                    pass
-
-        fig_heat.update_layout(
-            title=dict(text="Training Heatmap — Distance per Day", y=0.98,
-                       font=dict(size=14)),
-            xaxis=dict(
-                side="top", tickangle=0,
-                tickfont=dict(size=10),
-                tickvals=tick_vals,
-                ticktext=tick_text,
-            ),
-            yaxis=dict(tickfont=dict(size=11), automargin=True),
-            autosize=True,
-            height=240,
-            template="plotly_white",
-            margin=dict(l=50, r=80, t=70, b=10),
-            plot_bgcolor="#fff",
-        )
-        charts["heatmap"] = pio.to_html(fig_heat, full_html=False, config={"responsive": True})
-
-    # ── Pace Trend Regression ─────────────────────
     if regression:
-        import plotly.graph_objects as go
-        # Gradient within the brand palette: green (faster) -> sky -> muted indigo (slower)
-        paces_arr = regression["paces"]
-        pace_min = min(paces_arr)
-        pace_max = max(paces_arr)
-        pace_range = pace_max - pace_min if pace_max > pace_min else 1
-        green_threshold = min(max((160 - pace_min) / pace_range, 0), 1)
-        yellow_threshold = min(green_threshold + 0.1, 1)
-        colorscale = [
-            [0, "#11BF7F"],
-            [green_threshold, "#11BF7F"],
-            [yellow_threshold, "#79BAF2"],
-            [1, "#606EBF"],
-        ]
-        fig_reg = go.Figure()
-        # Trace 0: Actual Pace (gradient-colored dots)
-        fig_reg.add_trace(go.Scatter(
-            x=regression["dates"], y=regression["paces"],
-            mode="markers", name="Actual Pace",
-            marker=dict(
-                size=8,
-                color=paces_arr,
-                colorscale=colorscale,
-                cmin=pace_min,
-                cmax=pace_max,
-                showscale=False,
-            ),
-            hovertemplate="Date: %{x}<br>Pace: %{text}<extra></extra>",
-            text=regression["pace_formatted"],
-        ))
-        # Trace 1 (invisible legend ref): Faster
-        fig_reg.add_trace(go.Scatter(
-            x=[None], y=[None], mode="markers",
-            marker=dict(size=10, color="#11BF7F"),
-            name="Faster",
-        ))
-        # Trace 2 (invisible legend ref): Slower
-        fig_reg.add_trace(go.Scatter(
-            x=[None], y=[None], mode="markers",
-            marker=dict(size=10, color="#606EBF"),
-            name="Slower",
-        ))
-        # Trace 3: Linear
-        fig_reg.add_trace(go.Scatter(
-            x=regression["dates"], y=regression["trend_y"],
-            mode="lines", name=f"Linear (R\u00b2={regression['r_squared']:.2f})",
-            line=dict(color="#6379F2", width=2, dash="dash"),
-        ))
-        # Trace 4: Polynomial
-        fig_reg.add_trace(go.Scatter(
-            x=regression["dates"], y=regression["poly_y"],
-            mode="lines", name=f"Polynomial deg {regression['poly_degree']} (R\u00b2={regression['poly_r_squared']:.2f})",
-            line=dict(color="#606EBF", width=2.5),
-        ))
-        # Trace 5: Rolling Avg
-        fig_reg.add_trace(go.Scatter(
-            x=regression["dates"], y=regression["rolling_avg"],
-            mode="lines", name="10-workout Rolling Avg",
-            line=dict(color="#9AA6F8", width=2),
-        ))
-        # M:SS y-axis
-        all_paces = [p for p in regression["paces"] if p is not None]
-        rmin = (int(min(all_paces)) // 5) * 5
-        rmax = ((int(max(all_paces)) // 5) + 1) * 5
-        rtickv = list(range(rmin, rmax + 1, 5))
-        rtickt = [f"{v // 60}:{v % 60:02d}" for v in rtickv]
-        direction = "Getting Faster" if regression["improving"] else "Getting Slower"
-        fig_reg.add_annotation(
-            x=0.02, y=0.98, xref="paper", yref="paper",
-            text=f"<b>Rate:</b> {abs(regression['pace_change_per_month']):.1f}s /500m per month<br><b>{direction}</b>",
-            showarrow=False, bgcolor="rgba(255,255,255,0.8)", bordercolor="#ccc",
-            font=dict(size=12), align="left",
-        )
-        fig_reg.update_layout(
-            title="Pace Trend \u2014 Linear & Polynomial Regression",
-            xaxis_title="Date", yaxis_title="Pace /500m",
-            yaxis=dict(tickvals=rtickv, ticktext=rtickt),
-            template="plotly_white", height=500,
-            legend=dict(x=0.02, y=0.02, bgcolor="rgba(255,255,255,0.8)"),
-        )
-        charts["regression"] = pio.to_html(fig_reg, full_html=False, config={"responsive": True})
+        charts["regression"] = regression
 
-    # ── Workout Clustering ────────────────────────
     if clustering:
-        import plotly.graph_objects as go
-        from plotly.subplots import make_subplots
-        # Fixed colors mapped to labels (left→right = Sprint → Endurance)
-        label_colors = {
-            "Sprint": "#79BAF2",
-            "5K Steady-State": "#11BF7F",
-            "Mid-Distance (5-10K)": "#6379F2",
-            "10K Steady-State": "#5BD9A8",
-            "Endurance 10K+": "#606EBF",
-        }
-        # Variant shades for "(High Intensity)" suffixed labels
-        label_colors_hi = {
-            "Sprint": "#C2E0FA",
-            "5K Steady-State": "#7FE6C0",
-            "Mid-Distance (5-10K)": "#8E9DF6",
-            "10K Steady-State": "#9BEBD1",
-            "Endurance 10K+": "#8C97D6",
-        }
-        def _get_color(label, idx):
-            if label in label_colors:
-                return label_colors[label]
-            # Check for "(High Intensity)" variant
-            base = label.replace(" (High Intensity)", "")
-            if base in label_colors_hi:
-                return label_colors_hi[base]
-            return ["#79BAF2", "#11BF7F", "#6379F2", "#606EBF"][idx % 4]
-
-        # Cluster scatter (Distance vs Pace)
-        fig_cl = make_subplots(
-            rows=2, cols=2,
-            subplot_titles=["Distance vs Pace", "Distance vs Duration",
-                            "Distance vs Stroke Rate", "Distance vs Calories"],
-            horizontal_spacing=0.12, vertical_spacing=0.12,
-        )
-        # Profiles are already sorted by distance in analytics.py
-        for i, profile in enumerate(clustering["cluster_profiles"]):
+        series = []
+        for profile in clustering["cluster_profiles"]:
             cid = profile["id"]
             pts = [p for p in clustering["scatter_data"] if p["cluster"] == cid]
-            color = _get_color(profile["label"], i)
-            dists = [p["distance"] for p in pts]
-            paces = [p["pace"] for p in pts]
-            tmins = [p["time_min"] for p in pts]
-            spms = [p["stroke_rate"] for p in pts if p["stroke_rate"] is not None]
-            cals = [p["calories"] for p in pts if p["calories"] is not None]
-            dists_spm = [p["distance"] for p in pts if p["stroke_rate"] is not None]
-            dists_cal = [p["distance"] for p in pts if p["calories"] is not None]
-            show_legend = True
-            fig_cl.add_trace(go.Scatter(
-                x=dists, y=paces, mode="markers",
-                name=profile["label"],
-                marker=dict(size=8, color=color, opacity=0.7),
-                legendgroup=f"c{cid}", showlegend=show_legend,
-            ), row=1, col=1)
-            fig_cl.add_trace(go.Scatter(
-                x=dists, y=tmins, mode="markers",
-                name=profile["label"],
-                marker=dict(size=8, color=color, opacity=0.7),
-                legendgroup=f"c{cid}", showlegend=False,
-            ), row=1, col=2)
-            if spms:
-                fig_cl.add_trace(go.Scatter(
-                    x=dists_spm, y=spms, mode="markers",
-                    name=profile["label"],
-                    marker=dict(size=8, color=color, opacity=0.7),
-                    legendgroup=f"c{cid}", showlegend=False,
-                ), row=2, col=1)
-            if cals:
-                fig_cl.add_trace(go.Scatter(
-                    x=dists_cal, y=cals, mode="markers",
-                    name=profile["label"],
-                    marker=dict(size=8, color=color, opacity=0.7),
-                    legendgroup=f"c{cid}", showlegend=False,
-                ), row=2, col=2)
-        # M:SS on top-left y-axis
-        all_cl_paces = [p["pace"] for p in clustering["scatter_data"]]
-        cmin = (int(min(all_cl_paces)) // 5) * 5
-        cmax = ((int(max(all_cl_paces)) // 5) + 1) * 5
-        ctickv = list(range(cmin, cmax + 1, 10))
-        ctickt = [f"{v // 60}:{v % 60:02d}" for v in ctickv]
-        fig_cl.update_xaxes(title_text="Distance (m)", row=1, col=1)
-        fig_cl.update_xaxes(title_text="Distance (m)", row=1, col=2)
-        fig_cl.update_xaxes(title_text="Distance (m)", row=2, col=1)
-        fig_cl.update_xaxes(title_text="Distance (m)", row=2, col=2)
-        fig_cl.update_yaxes(title_text="Pace /500m", tickvals=ctickv, ticktext=ctickt, row=1, col=1)
-        fig_cl.update_yaxes(title_text="Duration (min)", row=1, col=2)
-        fig_cl.update_yaxes(title_text="Stroke Rate (spm)", row=2, col=1)
-        fig_cl.update_yaxes(title_text="Calories (cal)", row=2, col=2)
-        fig_cl.update_layout(
-            title="Workout Clusters — K-Means",
-            template="plotly_white", height=900, autosize=True,
-        )
-        charts["clustering"] = pio.to_html(fig_cl, full_html=False, config={"responsive": True})
+            series.append({
+                "label": profile["label"],
+                "points": [
+                    {
+                        "d": int(p["distance"]),
+                        "p": round(float(p["pace"]), 1) if p["pace"] is not None else None,
+                        "t": float(p["time_min"]),
+                        "spm": int(p["stroke_rate"]) if p["stroke_rate"] is not None else None,
+                        "cal": int(p["calories"]) if p["calories"] is not None else None,
+                    }
+                    for p in pts
+                ],
+            })
+        charts["clustering"] = {"series": series}
 
-        # Pie chart for training balance (uses distance-based categories)
         cat_profiles = clustering.get("category_profiles", clustering["cluster_profiles"])
-        labels = [p["label"] for p in cat_profiles]
-        counts = [p["count"] for p in cat_profiles]
-        colors_pie = [_get_color(p["label"], i) for i, p in enumerate(cat_profiles)]
-        fig_pie = go.Figure(data=[go.Pie(
-            labels=labels, values=counts,
-            marker=dict(colors=colors_pie),
-            textinfo="label+percent",
-        )])
-        fig_pie.update_layout(title="Training Balance", template="plotly_white")
-        charts["cluster_pie"] = pio.to_html(fig_pie, full_html=False, config={"responsive": True})
+        charts["cluster_pie"] = {
+            "labels": [p["label"] for p in cat_profiles],
+            "values": [int(p["count"]) for p in cat_profiles],
+        }
 
-    # Stroke-level detail chart for the latest workout (if we have data)
+    # Stroke-level detail data for the latest workout (if cached)
     if stroke_points:
-        charts["stroke_detail"] = stroke_detail_chart(stroke_points)
+        stroke = stroke_detail_data(stroke_points)
+        if stroke:
+            charts["stroke_detail"] = stroke
+
+    # Numpy scalars and NaN are not JSON-safe; normalise before |tojson.
+    def _jsonable(obj):
+        if isinstance(obj, dict):
+            return {k: _jsonable(v) for k, v in obj.items()}
+        if isinstance(obj, (list, tuple)):
+            return [_jsonable(v) for v in obj]
+        if isinstance(obj, float):
+            return None if math.isnan(obj) else obj
+        if hasattr(obj, "item"):  # numpy scalar
+            return _jsonable(obj.item())
+        return obj
+
+    charts = _jsonable(charts)
 
     return templates.TemplateResponse(
         request,

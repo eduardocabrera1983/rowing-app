@@ -432,23 +432,40 @@ def workout_clustering(df: pd.DataFrame, n_clusters: int = 4) -> dict[str, Any]:
     }
 
 
-def stroke_detail_chart(points: list[dict]) -> str | None:
-    """Build a Pace + Stroke Rate over time chart from stroke-level data.
+def daily_distance_data(df: pd.DataFrame) -> dict[str, Any]:
+    """Aggregate distance per calendar day for the ECharts calendar heatmap.
+
+    Returns dict with keys: data ([[YYYY-MM-DD, meters], ...]), max,
+    range ([first_day, last_day]).
+    """
+    if df.empty:
+        return {}
+    daily = df.copy()
+    daily["day"] = daily["date"].dt.strftime("%Y-%m-%d")
+    agg = daily.groupby("day").agg(total_meters=("distance_m", "sum")).reset_index()
+    data = [[row["day"], int(row["total_meters"])] for _, row in agg.iterrows()]
+    return {
+        "data": data,
+        "max": int(agg["total_meters"].max()),
+        "range": [agg["day"].min(), agg["day"].max()],
+    }
+
+
+def stroke_detail_data(points: list[dict]) -> dict[str, Any] | None:
+    """Prepare stroke-level series for the latest-workout detail chart.
 
     ``points`` is a list of dicts with keys ``t`` (tenths of a second since
     workout start), ``d`` (distance, m), ``p`` (pace in tenths-sec/500m),
     ``spm`` (strokes per minute) and optionally ``hr``.
 
-    Returns the chart HTML or ``None`` if data is insufficient.
+    Returns a dict of plain lists for client-side rendering, or ``None``
+    if data is insufficient.
     """
     if not points or len(points) < 2:
         return None
 
-    import plotly.graph_objects as go
-    from plotly.subplots import make_subplots
-
-    times_min = [(p["t"] or 0) / 600.0 for p in points]  # decisecs -> minutes
-    paces = [p["p"] / 10.0 if p.get("p") is not None else None for p in points]
+    times_min = [round((p["t"] or 0) / 600.0, 3) for p in points]  # decisecs -> minutes
+    paces = [round(p["p"] / 10.0, 1) if p.get("p") is not None else None for p in points]
     spms = [p.get("spm") for p in points]
     hrs = [p.get("hr") for p in points]
 
@@ -461,7 +478,7 @@ def stroke_detail_chart(points: list[dict]) -> str | None:
         out = []
         for i in range(len(values)):
             chunk = [v for v in values[max(0, i - half):i + half + 1] if v is not None]
-            out.append(sum(chunk) / len(chunk) if chunk else None)
+            out.append(round(sum(chunk) / len(chunk), 1) if chunk else None)
         return out
 
     # Per-stroke pace jitters +-2-4 s/500m, which renders as a blurry double
@@ -471,95 +488,11 @@ def stroke_detail_chart(points: list[dict]) -> str | None:
 
     has_hr = any(h is not None and h > 0 for h in hrs)
 
-    rows = 3 if has_hr else 2
-    fig = make_subplots(
-        rows=rows, cols=1,
-        shared_xaxes=True,
-        vertical_spacing=0.08,
-        subplot_titles=(
-            "Pace /500m", "Stroke Rate (spm)",
-            *(("Heart Rate (bpm)",) if has_hr else ()),
-        ),
-    )
-
-    fig.add_trace(
-        go.Scatter(
-            x=times_min, y=paces, mode="lines",
-            line=dict(color="rgba(99,121,242,0.3)", width=1),
-            name="Pace (per stroke)",
-            hovertemplate="%{x:.2f} min<br>%{y:.1f} s/500m<extra></extra>",
-        ),
-        row=1, col=1,
-    )
-    fig.add_trace(
-        go.Scatter(
-            x=times_min, y=paces_smooth, mode="lines",
-            line=dict(color="#6379F2", width=2.5),
-            name="Pace", hovertemplate="%{x:.2f} min<br>%{y:.1f} s/500m<extra></extra>",
-        ),
-        row=1, col=1,
-    )
-    fig.add_trace(
-        go.Scatter(
-            x=times_min, y=spms, mode="lines",
-            line=dict(color="#11BF7F", width=2),
-            name="Stroke Rate",
-            hovertemplate="%{x:.2f} min<br>%{y} spm<extra></extra>",
-        ),
-        row=2, col=1,
-    )
-    if has_hr:
-        fig.add_trace(
-            go.Scatter(
-                x=times_min, y=hrs, mode="lines",
-                line=dict(color="#ef4444", width=2),
-                name="Heart Rate",
-                hovertemplate="%{x:.2f} min<br>%{y} bpm<extra></extra>",
-            ),
-            row=3, col=1,
-        )
-
-    # Pretty M:SS tick labels on the pace axis (inverted: faster pace = smaller value at top)
-    valid_paces = [p for p in paces if p is not None and p > 0]
-    if valid_paces:
-        pmn, pmx = min(valid_paces), max(valid_paces)
-        # Tight range around actual data with ~10% padding (min 5s either side)
-        pad = max(5, (pmx - pmn) * 0.1)
-        ylo = max(0, pmn - pad)
-        yhi = pmx + pad
-        # Tick every 5s, snapped to multiples of 5
-        step = 5 if (yhi - ylo) <= 60 else 10
-        tmin = (int(ylo) // step) * step
-        tmax = ((int(yhi) // step) + 1) * step
-        tickv = list(range(tmin, tmax + 1, step))
-        tickt = [f"{v // 60}:{v % 60:02d}" for v in tickv]
-        fig.update_yaxes(
-            tickvals=tickv, ticktext=tickt,
-            range=[yhi, ylo],  # reversed: smaller (faster) on top
-            row=1, col=1,
-        )
-
-    # Tight range for stroke rate (around actual data)
-    valid_spms = [s for s in spms if s is not None and s > 0]
-    if valid_spms:
-        smn, smx = min(valid_spms), max(valid_spms)
-        spad = max(2, (smx - smn) * 0.15)
-        fig.update_yaxes(range=[smn - spad, smx + spad], row=2, col=1)
-
-    # Tight range for heart rate
-    if has_hr:
-        valid_hrs = [h for h in hrs if h is not None and h > 0]
-        if valid_hrs:
-            hmn, hmx = min(valid_hrs), max(valid_hrs)
-            hpad = max(5, (hmx - hmn) * 0.1)
-            fig.update_yaxes(range=[hmn - hpad, hmx + hpad], row=3, col=1)
-
-    fig.update_xaxes(title_text="Time (min)", row=rows, col=1)
-    fig.update_layout(
-        template="plotly_white",
-        height=200 * rows + 100,
-        showlegend=False,
-        margin=dict(l=60, r=30, t=60, b=50),
-    )
-    import plotly.io as pio
-    return pio.to_html(fig, full_html=False, include_plotlyjs=False, config={"responsive": True})
+    return {
+        "times_min": times_min,
+        "paces_raw": paces,
+        "paces_smooth": paces_smooth,
+        "spms": spms,
+        "hrs": hrs if has_hr else [],
+        "has_hr": has_hr,
+    }

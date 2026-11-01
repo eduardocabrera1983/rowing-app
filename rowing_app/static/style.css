@@ -214,6 +214,22 @@ header nav { display: flex; align-items: center; gap: 1rem; }
     overflow-x: auto;  /* allow horizontal scroll for wide charts like heatmap */
 }
 
+/* ── ECharts containers (explicit heights required) ── */
+.echart { width: 100%; min-width: 0; }
+.echart-bar { height: 380px; }
+.echart-heatmap { height: 240px; }
+.echart-regression { height: 520px; }
+.echart-clusters { height: 860px; }
+.echart-pie { height: 460px; }
+.echart-stroke { height: 560px; }
+@media (max-width: 768px) {
+    .echart-bar { height: 300px; }
+    .echart-regression { height: 420px; }
+    .echart-clusters { height: 720px; }
+    .echart-pie { height: 400px; }
+    .echart-stroke { height: 480px; }
+}
+
 /* ÔöÇÔöÇ Badges (improving / slowing) ÔöÇÔöÇ */
 .badge {
     display: inline-block;

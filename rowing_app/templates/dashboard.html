@@ -17,8 +17,8 @@
         })();
     </script>
     <link rel="stylesheet" href="{{ static_url('style.css') }}">
-    <!-- Local copy of the exact plotly.js bundled with plotly.py; the CDN "latest" is frozen at v1.58.5 (2021) and misrenders modern figures (duplicated trace layers). -->
-    <script src="/static/plotly.min.js"></script>
+    <!-- Apache ECharts served locally (no CDN dependency). -->
+    <script src="/static/echarts.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -141,7 +141,7 @@
                 <span class="technique-text">Per-stroke telemetry from the PM5 monitor reveals pacing strategy, fatigue patterns, and stroke rate consistency within a single workout.</span>
             </div>
             <div class="chart-container">
-                {{ charts.stroke_detail | safe }}
+                <div id="ec-stroke" class="echart echart-stroke"></div>
             </div>
         </section>
         {% elif latest_workout and is_authenticated %}
@@ -183,13 +183,13 @@
                             </div>
             {% if charts.monthly_distance %}
             <div class="chart-container">
-                {{ charts.monthly_distance | safe }}
+                <div id="ec-monthly" class="echart echart-bar"></div>
             </div>
             {% endif %}
 
             {% if charts.weekly_distance %}
             <div class="chart-container">
-                {{ charts.weekly_distance | safe }}
+                <div id="ec-weekly" class="echart echart-bar"></div>
             </div>
             {% endif %}
 
@@ -203,72 +203,12 @@
             <p class="section-desc">A GitHub-style calendar showing my daily rowing volume. Darker green = more meters.</p>
             <div class="technique-hint">
                 <span class="technique-label">&#x1F5D3;&#xFE0F; Matrix Transposition &amp; Heatmap Visualization</span>
-                <span class="technique-text">NumPy matrix transposition maps daily values into a weeks &times; weekdays grid.                 Custom colorscale encodes intensity.</span>
+                <span class="technique-text">Daily distances aggregated with Pandas groupby are mapped onto a calendar coordinate grid.                 Custom colorscale encodes intensity.</span>
                             </div>
             <div class="chart-container" id="heatmap-container">
-                {{ charts.heatmap | safe }}
+                <div id="ec-heatmap" class="echart echart-heatmap"></div>
             </div>
         </section>
-        <script>
-        (function () {
-            var wrap = document.getElementById('heatmap-container');
-            if (!wrap) return;
-            var MOBILE_WEEKS = 12;
-
-            function tune() {
-                var div = wrap.querySelector('.plotly-graph-div');
-                if (!div || !window.Plotly || !div.data || !div.data[0]) return;
-                var weeks = div.data[0].x ? div.data[0].x.length : 0;
-                var w = wrap.clientWidth - 16;
-                var mobile = window.innerWidth <= 768 && weeks > MOBILE_WEEKS;
-
-                // Derive the height from the column width so every cell stays square.
-                function squareHeight(cols, ml, mr, mt, mb) {
-                    var cell = (w - ml - mr) / Math.max(cols, 1);
-                    return Math.max(150, Math.min(520, Math.round(cell * 7) + mt + mb));
-                }
-
-                if (mobile) {
-                    // Clamp the category axis to the most recent weeks so a phone
-                    // shows readable cells instead of a squashed multi-year calendar.
-                    Plotly.relayout(div, {
-                        width: w,
-                        height: squareHeight(MOBILE_WEEKS, 34, 8, 46, 10),
-                        'xaxis.range': [weeks - MOBILE_WEEKS - 0.5, weeks - 0.5],
-                        'xaxis.tickfont.size': 9,
-                        'yaxis.tickfont.size': 9,
-                        'title.text': 'Training Heatmap',
-                        'title.font.size': 12,
-                        'margin.l': 34, 'margin.r': 8, 'margin.t': 46
-                    });
-                    Plotly.restyle(div, {'colorbar.thickness': 7, 'colorbar.len': 0.9,
-                                         'colorbar.tickfont.size': 8, 'colorbar.title.text': ''}, [0]);
-                } else {
-                    Plotly.relayout(div, {
-                        width: w,
-                        height: squareHeight(weeks, 50, 80, 70, 10),
-                        'xaxis.autorange': true,
-                        'xaxis.tickfont.size': 10,
-                        'yaxis.tickfont.size': 11,
-                        'title.text': 'Training Heatmap \u2014 Distance per Day',
-                        'title.font.size': 14,
-                        'margin.l': 50, 'margin.r': 80, 'margin.t': 70
-                    });
-                    Plotly.restyle(div, {'colorbar.thickness': 10, 'colorbar.len': 0.9,
-                                         'colorbar.tickfont.size': 11, 'colorbar.title.text': 'Meters'}, [0]);
-                }
-            }
-
-            if (document.readyState === 'complete') { tune(); }
-            else { window.addEventListener('load', tune); }
-
-            var t;
-            window.addEventListener('resize', function () {
-                clearTimeout(t);
-                t = setTimeout(tune, 200);
-            });
-        })();
-        </script>
         {% endif %}
 
         <!-- ── Pace Trend Regression ──────────── -->
@@ -300,36 +240,9 @@
                 </label>
             </div>
             <div class="chart-container" id="regression-chart-container">
-                {{ charts.regression | safe }}
+                <div id="ec-regression" class="echart echart-regression"></div>
             </div>
         </section>
-        <script>
-        (function() {
-            var sel = document.getElementById('reg-model-select');
-            var container = document.getElementById('regression-chart-container');
-            var r2Lin = document.getElementById('r2-linear');
-            var r2Poly = document.getElementById('r2-poly');
-
-            sel.addEventListener('change', function() {
-                var plotDiv = container.querySelector('.plotly-graph-div') || container.querySelector('[class*="plotly"]');
-                if (!plotDiv) return;
-                var val = sel.value;
-                // Traces: 0=Actual(dots), 1=Faster(legend), 2=Slower(legend), 3=Linear, 4=Poly, 5=RollingAvg
-                var vis = {
-                    'both':   [true, true, true, true, true, true],
-                    'linear': [true, true, true, true, false, true],
-                    'poly':   [true, true, true, false, true, true],
-                };
-                var states = vis[val] || vis['both'];
-                for (var i = 0; i < states.length; i++) {
-                    Plotly.restyle(plotDiv, {visible: states[i]}, [i]);
-                }
-                // Toggle R² display
-                if (r2Lin) r2Lin.style.display = (val === 'poly') ? 'none' : '';
-                if (r2Poly) r2Poly.style.display = (val === 'linear') ? 'none' : '';
-            });
-        })();
-        </script>
         {% endif %}
 
         <!-- ── Workout Clustering ─────────────── -->
@@ -355,7 +268,7 @@
             {% endif %}
 
             <div class="chart-container">
-                {{ charts.clustering | safe }}
+                <div id="ec-clusters" class="echart echart-clusters"></div>
             </div>
         </section>
         {% endif %}
@@ -370,7 +283,7 @@
                             </div>
             <p class="section-desc">What percentage of my workouts fall into each category?</p>
             <div class="chart-container">
-                {{ charts.cluster_pie | safe }}
+                <div id="ec-pie" class="echart echart-pie"></div>
             </div>
         </section>
         {% endif %}
@@ -385,197 +298,7 @@
         </footer>
     </div>
 
-    <script>
-    // Theme switcher: flips the data-theme attribute and repaints every Plotly chart,
-    // since the figures are rendered server-side with the light template baked in.
-    (function () {
-        var PALETTE = {
-            light: {paper: '#ffffff', plot: '#ffffff', font: '#333333', grid: '#ebedf0', line: '#cccccc',
-                    empty: '#ebedf0'},
-            dark:  {paper: '#1a2029', plot: '#1a2029', font: '#e3e8f0', grid: '#2c3745', line: '#3a4553',
-                    empty: '#1f2630'}
-        };
-
-        function currentTheme() {
-            return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
-        }
-
-        function paintCharts() {
-            if (!window.Plotly) return;
-            var c = PALETTE[currentTheme()];
-            document.querySelectorAll('.plotly-graph-div').forEach(function (div) {
-                if (!div.layout) return;
-                var upd = {
-                    paper_bgcolor: c.paper,
-                    plot_bgcolor: c.plot,
-                    'font.color': c.font,
-                    'legend.bgcolor': 'rgba(0,0,0,0)'
-                };
-                Object.keys(div.layout).forEach(function (k) {
-                    if (/^[xy]axis\d*$/.test(k)) {
-                        upd[k + '.gridcolor'] = c.grid;
-                        upd[k + '.zerolinecolor'] = c.line;
-                        upd[k + '.linecolor'] = c.line;
-                    }
-                });
-                (div.layout.annotations || []).forEach(function (_, i) {
-                    upd['annotations[' + i + '].font.color'] = c.font;
-                });
-                try { Plotly.relayout(div, upd); } catch (e) { /* leave chart as-is */ }
-
-                // Heatmap "no training" cells blend into the page background.
-                var tr = div.data && div.data[0];
-                if (tr && tr.type === 'heatmap' && tr.colorscale && tr.colorscale.length) {
-                    var cs = tr.colorscale.map(function (s) { return [s[0], s[1]]; });
-                    cs[0] = [0, c.empty];
-                    try { Plotly.restyle(div, {colorscale: [cs]}, [0]); } catch (e) { /* ignore */ }
-                }
-            });
-        }
-
-        var btn = document.getElementById('theme-toggle');
-        if (btn) {
-            btn.addEventListener('click', function () {
-                var next = currentTheme() === 'dark' ? 'light' : 'dark';
-                document.documentElement.setAttribute('data-theme', next);
-                try { localStorage.setItem('theme', next); } catch (e) { /* storage blocked */ }
-                paintCharts();
-            });
-        }
-
-        if (document.readyState === 'complete') { paintCharts(); }
-        else { window.addEventListener('load', paintCharts); }
-    })();
-    </script>
-
-    <script>
-    // Plotly's default margins consume ~160px, which leaves almost no plot area on a
-    // phone. Re-layout every chart for narrow screens and stack side-by-side subplots.
-    (function () {
-        var BREAKPOINT = 768;
-        var PLOTLY_DEFAULT_MARGIN = {l: 80, r: 80, t: 100, b: 80};
-        var snapshots = new WeakMap();
-
-        function axisKeys(layout, prefix) {
-            return Object.keys(layout)
-                .filter(function (k) { return new RegExp('^' + prefix + '\\d*$').test(k); })
-                .sort(function (a, b) {
-                    return (parseInt(a.replace(prefix, ''), 10) || 1) - (parseInt(b.replace(prefix, ''), 10) || 1);
-                });
-        }
-
-        function snapshot(div) {
-            if (snapshots.has(div)) return snapshots.get(div);
-            var l = div.layout || {};
-            var snap = {
-                margin: Object.keys(l.margin || {}).length ? Object.assign({}, l.margin) : PLOTLY_DEFAULT_MARGIN,
-                height: l.height,
-                legend: l.legend ? JSON.parse(JSON.stringify(l.legend)) : null,
-                annotations: l.annotations ? JSON.parse(JSON.stringify(l.annotations)) : null,
-                domains: {}
-            };
-            axisKeys(l, 'xaxis').concat(axisKeys(l, 'yaxis')).forEach(function (k) {
-                if (l[k] && l[k].domain) snap.domains[k] = l[k].domain.slice();
-            });
-            snap.xTitles = {};
-            axisKeys(l, 'xaxis').forEach(function (k) {
-                snap.xTitles[k] = (l[k] && l[k].title && l[k].title.text) || '';
-            });
-            snapshots.set(div, snap);
-            return snap;
-        }
-
-        function isMultiColumn(layout) {
-            var seen = {};
-            var n = 0;
-            axisKeys(layout, 'xaxis').forEach(function (k) {
-                var d = JSON.stringify((layout[k] || {}).domain || []);
-                if (!seen[d]) { seen[d] = 1; n++; }
-            });
-            return n > 1;
-        }
-
-        function tune(div, width) {
-            var snap = snapshot(div);
-            var l = div.layout || {};
-            var mobile = window.innerWidth <= BREAKPOINT;
-            var xs = axisKeys(l, 'xaxis');
-            var upd = {width: width};
-
-            if (!mobile) {
-                upd.margin = snap.margin;
-                upd.height = snap.height;
-                if (snap.legend) upd.legend = snap.legend;
-                if (snap.annotations) upd.annotations = snap.annotations;
-                Object.keys(snap.domains).forEach(function (k) { upd[k + '.domain'] = snap.domains[k]; });
-                Object.keys(snap.xTitles).forEach(function (k) { upd[k + '.title.text'] = snap.xTitles[k]; });
-                upd['font.size'] = 12;
-                return Plotly.relayout(div, upd);
-            }
-
-            upd.margin = {l: 46, r: 14, t: 44, b: 40};
-            upd['font.size'] = 10;
-            upd['title.font.size'] = 12;
-
-            if (l.showlegend !== false) {
-                upd.legend = {orientation: 'h', x: 0, xanchor: 'left', y: -0.12,
-                              yanchor: 'top', font: {size: 9}};
-            }
-
-            if (xs.length > 1 && isMultiColumn(l)) {
-                // Side-by-side panels are unreadable at ~250px, so give each its own row.
-                var n = xs.length;
-                var gap = 0.085;
-                var top = 0.955;  // headroom so the chart title clears panel one
-                var band = (top - gap * (n - 1)) / n;
-                var tops = [];
-                xs.forEach(function (xk, i) {
-                    var yk = xk.replace('xaxis', 'yaxis');
-                    var bottom = (n - 1 - i) * (band + gap);
-                    tops.push(bottom + band);
-                    upd[xk + '.domain'] = [0, 1];
-                    upd[yk + '.domain'] = [bottom, bottom + band];
-                    // Every panel shares the same x label, so keep only the bottom one.
-                    if (i < n - 1) upd[xk + '.title.text'] = '';
-                });
-                upd.height = n * 270 + 140;
-                if (snap.annotations && snap.annotations.length >= n) {
-                    var anns = JSON.parse(JSON.stringify(snap.annotations));
-                    for (var i = 0; i < n; i++) {
-                        anns[i].x = 0.5;
-                        anns[i].y = tops[i] + 0.012;
-                        anns[i].xanchor = 'center';
-                        anns[i].yanchor = 'bottom';
-                        anns[i].font = Object.assign({}, anns[i].font, {size: 11});
-                    }
-                    upd.annotations = anns;
-                }
-            } else if (snap.height) {
-                upd.height = l.showlegend !== false ? snap.height + 60 : snap.height;
-            }
-
-            return Plotly.relayout(div, upd);
-        }
-
-        function tuneAll() {
-            if (!window.Plotly) return;
-            document.querySelectorAll('.chart-container').forEach(function (wrap) {
-                if (wrap.id === 'heatmap-container') return;  // has its own handler
-                var div = wrap.querySelector('.plotly-graph-div');
-                if (!div || !div.layout) return;
-                try { tune(div, wrap.clientWidth - 16); } catch (e) { /* leave chart as-is */ }
-            });
-        }
-
-        if (document.readyState === 'complete') { tuneAll(); }
-        else { window.addEventListener('load', tuneAll); }
-
-        var t;
-        window.addEventListener('resize', function () {
-            clearTimeout(t);
-            t = setTimeout(tuneAll, 200);
-        });
-    })();
-    </script>
+    <script id="chart-data" type="application/json">{{ charts | tojson }}</script>
+    <script src="{{ static_url('charts.js') }}"></script>
 </body>
 </html>

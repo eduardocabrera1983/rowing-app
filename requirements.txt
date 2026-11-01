@@ -23,7 +23,7 @@ pydantic-settings==2.14.1
 # --- Data Analysis & Visualization ---
 pandas==3.0.3
 numpy==2.4.6
-plotly==6.7.0
+# Charts are rendered client-side with Apache ECharts (static/echarts.min.js)
 
 # --- Machine Learning ---
 scikit-learn==1.8.0
