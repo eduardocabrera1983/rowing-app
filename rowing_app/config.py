@@ -27,6 +27,10 @@ class Settings(BaseSettings):
     # Only this Concept2 username may authenticate and sync (dashboard stays public)
     owner_username: str = Field(default="educabrera1983")
 
+    # Only workouts belonging to this Concept2 user ID are stored and displayed.
+    # Defense in depth: even if foreign data reaches the DB it is never shown.
+    owner_user_id: int = Field(default=2564126)
+
     @property
     def c2_authorize_url(self) -> str:
         return f"{self.c2_api_base_url}/oauth/authorize"

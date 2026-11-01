@@ -18,6 +18,7 @@ from typing import Optional
 from loguru import logger
 
 from .api_client import Concept2Client
+from .config import settings
 from .models import WorkoutResult
 
 import os
@@ -157,7 +158,10 @@ def _upsert_workouts(conn: sqlite3.Connection, results: list[WorkoutResult]) -> 
 def _update_sync_meta(conn: sqlite3.Connection) -> None:
     """Update the sync timestamp and row count."""
     now_utc = datetime.now(timezone.utc).isoformat()
-    total = conn.execute("SELECT COUNT(*) FROM workouts").fetchone()[0]
+    total = conn.execute(
+        "SELECT COUNT(*) FROM workouts WHERE user_id = ?",
+        (settings.owner_user_id,),
+    ).fetchone()[0]
     conn.execute(
         """
         INSERT INTO sync_meta (id, last_sync_utc, total_rows)
@@ -195,10 +199,11 @@ def needs_sync() -> bool:
 
 
 def get_latest_workout_date() -> Optional[str]:
-    """Return the date string of the most recent workout in the DB."""
+    """Return the date string of the owner's most recent workout in the DB."""
     conn = _get_connection()
     row = conn.execute(
-        "SELECT date FROM workouts ORDER BY date DESC LIMIT 1"
+        "SELECT date FROM workouts WHERE user_id = ? ORDER BY date DESC LIMIT 1",
+        (settings.owner_user_id,),
     ).fetchone()
     conn.close()
     if row:
@@ -207,9 +212,12 @@ def get_latest_workout_date() -> Optional[str]:
 
 
 def get_workout_count() -> int:
-    """Return total number of workouts stored locally."""
+    """Return total number of the owner's workouts stored locally."""
     conn = _get_connection()
-    count = conn.execute("SELECT COUNT(*) FROM workouts").fetchone()[0]
+    count = conn.execute(
+        "SELECT COUNT(*) FROM workouts WHERE user_id = ?",
+        (settings.owner_user_id,),
+    ).fetchone()[0]
     conn.close()
     return count
 
@@ -223,8 +231,8 @@ def load_workouts_as_models(
     This is what the dashboard uses instead of calling the API.
     """
     conn = _get_connection()
-    query = "SELECT * FROM workouts WHERE 1=1"
-    params: list = []
+    query = "SELECT * FROM workouts WHERE user_id = ?"
+    params: list = [settings.owner_user_id]
 
     if from_date:
         query += " AND date >= ?"
@@ -324,12 +332,18 @@ async def sync_workouts(client: Concept2Client) -> dict:
             workout_type="rower",
         )
 
+    # Defense in depth: never store workouts that don't belong to the owner
+    results = [r for r in results if r.user_id == settings.owner_user_id]
+
     # Write to DB
     conn = _get_connection()
     new_count = _upsert_workouts(conn, results)
     _update_sync_meta(conn)
     conn.commit()
-    total = conn.execute("SELECT COUNT(*) FROM workouts").fetchone()[0]
+    total = conn.execute(
+        "SELECT COUNT(*) FROM workouts WHERE user_id = ?",
+        (settings.owner_user_id,),
+    ).fetchone()[0]
     conn.close()
 
     last_sync = get_last_sync()
@@ -397,10 +411,11 @@ def load_stroke_data(result_id: int) -> list[dict]:
 
 
 def get_latest_workout_id() -> Optional[int]:
-    """Return the ID of the most recent workout, or None."""
+    """Return the ID of the owner's most recent workout, or None."""
     conn = _get_connection()
     row = conn.execute(
-        "SELECT id FROM workouts ORDER BY date DESC LIMIT 1"
+        "SELECT id FROM workouts WHERE user_id = ? ORDER BY date DESC LIMIT 1",
+        (settings.owner_user_id,),
     ).fetchone()
     conn.close()
     return row["id"] if row else None
