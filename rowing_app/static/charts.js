@@ -481,8 +481,10 @@
                 };
             });
 
+            var noun = key === 'weekly' ? 'weeks' : (key === 'monthly' ? 'months' : 'sessions');
+
             return Object.assign(baseOption(c), {
-                title: { text: m.label + ' — density of ' + m.n + ' sessions', left: 'center',
+                title: { text: m.label + ' — density of ' + m.n + ' ' + noun, left: 'center',
                          textStyle: { color: c.text, fontSize: 15 } },
                 tooltip: Object.assign(baseOption(c).tooltip, {
                     trigger: 'axis',

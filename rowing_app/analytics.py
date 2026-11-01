@@ -507,6 +507,12 @@ def distribution_data(df: pd.DataFrame) -> dict[str, Any]:
         if m:
             metrics["weekly"] = m
 
+    monthly = monthly_volume(df)
+    if not monthly.empty and len(monthly) >= 3:
+        m = _metric(monthly["total_distance_km"], "Monthly volume", "km/month", decimals=1)
+        if m:
+            metrics["monthly"] = m
+
     return {"metrics": metrics} if metrics else {}
 
 
