@@ -288,9 +288,13 @@
             var sel = document.getElementById('reg-model-select');
             var mode = sel ? sel.value : 'both';
 
-            // Dot colour matches the pace bands: green = fast, sky = mid, indigo = slow
+            // Dot colour matches the brand bands; the fastest 5% get the amber
+            // "record" accent so standout days pop.
+            var sorted = d.paces.slice().sort(function (a, b) { return a - b; });
+            var p05 = sorted[Math.max(0, Math.floor(sorted.length * 0.05) - 1)] || sorted[0];
             function dotColor(v) {
-                return v <= 160 ? PALETTE.green : (v <= 172 ? PALETTE.sky : PALETTE.indigoMuted);
+                if (v <= p05) return PALETTE.amber;
+                return v <= 160 ? PALETTE.green : (v <= 172 ? PALETTE.sky : PALETTE.violet);
             }
 
             function line(name, ys, color, dash, width, show) {
@@ -529,6 +533,10 @@
 
         var distSel = document.getElementById('dist-metric-select');
         if (distSel) {
+            // Hide metrics with no data (e.g. heart rate until a HR strap is used)
+            Array.prototype.slice.call(distSel.options).forEach(function (opt) {
+                if (!DATA.distribution.metrics[opt.value]) opt.remove();
+            });
             distSel.addEventListener('change', renderAll);
         }
     }

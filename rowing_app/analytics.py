@@ -501,6 +501,16 @@ def distribution_data(df: pd.DataFrame) -> dict[str, Any]:
     if m:
         metrics["duration"] = m
 
+    if df["calories"].notna().any():
+        m = _metric(df["calories"], "Calories per workout", "cal", decimals=0)
+        if m:
+            metrics["calories"] = m
+
+    if df["heart_rate_avg"].notna().any():
+        m = _metric(df["heart_rate_avg"], "Avg heart rate", "bpm", decimals=0)
+        if m:
+            metrics["heart_rate"] = m
+
     weekly = weekly_volume(df)
     if not weekly.empty and len(weekly) >= 3:
         m = _metric(weekly["total_distance_km"], "Weekly volume", "km/week", decimals=1)
