@@ -20,6 +20,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from .analytics import (
     compute_summary,
     daily_distance_data,
+    distribution_data,
     monthly_volume,
     pace_trend_regression,
     personal_bests,
@@ -254,6 +255,7 @@ async def _build_dashboard(request, user_resp, results, sync_info, from_date, to
     monthly = monthly_volume(df)
     weekly = weekly_volume(df)
     heatmap = daily_distance_data(df)
+    distribution = distribution_data(df)
     regression = pace_trend_regression(df)
     clustering = workout_clustering(df, n_clusters=4)
 
@@ -290,6 +292,9 @@ async def _build_dashboard(request, user_resp, results, sync_info, from_date, to
 
     if heatmap:
         charts["heatmap"] = heatmap
+
+    if distribution:
+        charts["distribution"] = distribution
 
     if regression:
         charts["regression"] = regression

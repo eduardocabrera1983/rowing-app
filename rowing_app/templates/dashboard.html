@@ -211,6 +211,31 @@
         </section>
         {% endif %}
 
+        <!-- ── Workout Distribution ───────────── -->
+        {% if charts.distribution %}
+        <section class="charts">
+            <h2>&#x1F514; Workout Distribution</h2>
+            <div class="technique-hint">
+                <span class="technique-label">&#x1F4D0; Kernel Density Estimation &amp; Percentiles</span>
+                <span class="technique-text">A Gaussian-kernel density curve shows how sessions are distributed, with the median and upper percentiles marked. For pace, the markers highlight the fastest 25/10/5% instead of the slow tail.</span>
+            </div>
+            <div class="regression-controls">
+                <p class="section-desc">Where does a typical session sit &mdash; and how far out are my big days?</p>
+                <label class="reg-filter">Metric:
+                    <select id="dist-metric-select">
+                        <option value="distance" selected>Distance / workout</option>
+                        <option value="pace">Avg pace</option>
+                        <option value="duration">Duration</option>
+                        <option value="weekly">Weekly volume</option>
+                    </select>
+                </label>
+            </div>
+            <div class="chart-container">
+                <div id="ec-distribution" class="echart echart-distribution"></div>
+            </div>
+        </section>
+        {% endif %}
+
         <!-- ── Pace Trend Regression ──────────── -->
         {% if charts.regression %}
         <section class="charts">

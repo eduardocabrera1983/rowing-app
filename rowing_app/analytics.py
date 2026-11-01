@@ -432,6 +432,84 @@ def workout_clustering(df: pd.DataFrame, n_clusters: int = 4) -> dict[str, Any]:
     }
 
 
+def distribution_data(df: pd.DataFrame) -> dict[str, Any]:
+    """Kernel density estimates + percentile markers for key training metrics.
+
+    Returns a dict of metrics, each with a smooth density curve (x, y) and
+    percentile markers. For pace, lower is better, so the markers highlight
+    the fast side (top 25/10/5%) instead of the slow tail.
+    """
+    if df.empty:
+        return {}
+
+    def _kde(values: np.ndarray, points: int = 140):
+        v = np.asarray(values, dtype=float)
+        n = len(v)
+        if n < 3:
+            return None
+        std = float(v.std(ddof=1))
+        q75, q25 = np.percentile(v, [75, 25])
+        iqr = q75 - q25
+        sigma = min(std, iqr / 1.349) if iqr > 0 else std
+        if sigma <= 0:
+            sigma = max(std, 1.0)
+        h = 0.9 * sigma * n ** (-0.2)  # Silverman's rule of thumb
+        if h <= 0:
+            h = 1.0
+        lo, hi = float(v.min()) - 2 * h, float(v.max()) + 2 * h
+        xs = np.linspace(max(lo, 0), hi, points)
+        dens = np.exp(-0.5 * ((xs[:, None] - v[None, :]) / h) ** 2).sum(axis=1)
+        dens = dens / (n * h * np.sqrt(2 * np.pi))
+        return xs, dens
+
+    def _metric(values, label, unit, fast_side=False, decimals=2):
+        v = np.asarray([x for x in values if x is not None and not np.isnan(x)], dtype=float)
+        kde = _kde(v)
+        if kde is None:
+            return None
+        xs, dens = kde
+        if fast_side:
+            # Lower is better: median plus the fastest 25/10/5% thresholds
+            marks = [("Median", 50), ("Top 25%", 25), ("Top 10%", 10), ("Top 5%", 5)]
+        else:
+            marks = [("Median", 50), ("P75", 75), ("P90", 90), ("P95", 95)]
+        return {
+            "label": label,
+            "unit": unit,
+            "x": [round(float(x), decimals) for x in xs],
+            "y": [round(float(y), 6) for y in dens],
+            "markers": [
+                {"label": m, "value": round(float(np.percentile(v, q)), decimals)}
+                for m, q in marks
+            ],
+            "n": int(len(v)),
+            "pace": fast_side,
+        }
+
+    metrics: dict[str, Any] = {}
+
+    m = _metric(df["distance_m"] / 1000.0, "Distance per workout", "km")
+    if m:
+        metrics["distance"] = m
+
+    if df["pace_500m"].notna().any():
+        m = _metric(df["pace_500m"], "Avg pace per workout", "/500m", fast_side=True, decimals=1)
+        if m:
+            metrics["pace"] = m
+
+    m = _metric(df["time_seconds"] / 60.0, "Duration per workout", "min", decimals=1)
+    if m:
+        metrics["duration"] = m
+
+    weekly = weekly_volume(df)
+    if not weekly.empty and len(weekly) >= 3:
+        m = _metric(weekly["total_distance_km"], "Weekly volume", "km/week", decimals=1)
+        if m:
+            metrics["weekly"] = m
+
+    return {"metrics": metrics} if metrics else {}
+
+
 def daily_distance_data(df: pd.DataFrame) -> dict[str, Any]:
     """Aggregate distance per calendar day for the ECharts calendar heatmap.
 

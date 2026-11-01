@@ -222,6 +222,7 @@ header nav { display: flex; align-items: center; gap: 1rem; }
 .echart-clusters { height: 860px; }
 .echart-pie { height: 460px; }
 .echart-stroke { height: 560px; }
+.echart-distribution { height: 420px; }
 @media (max-width: 768px) {
     .echart-bar { height: 300px; }
     .echart-regression { height: 420px; }

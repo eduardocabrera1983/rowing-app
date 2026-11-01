@@ -454,6 +454,81 @@
         });
     }
 
+    // ── Workout distribution: KDE curve + percentile markers ──
+    if (DATA.distribution) {
+        var MARKER_COLORS = [PALETTE.green, PALETTE.sky, PALETTE.indigo, PALETTE.indigoMuted];
+
+        register('ec-distribution', function (c) {
+            var sel = document.getElementById('dist-metric-select');
+            var key = sel && DATA.distribution.metrics[sel.value] ? sel.value : Object.keys(DATA.distribution.metrics)[0];
+            var m = DATA.distribution.metrics[key];
+            var isPace = !!m.pace;
+
+            function fmtVal(v) {
+                return isPace ? fmtPace(v) + ' ' + m.unit : v + ' ' + m.unit;
+            }
+
+            var yMax = Math.max.apply(null, m.y);
+            var markLines = m.markers.map(function (mk, i) {
+                return {
+                    xAxis: mk.value,
+                    lineStyle: { color: MARKER_COLORS[i], width: i === 0 ? 2.5 : 1.6, type: i === 0 ? 'solid' : 'dashed' },
+                    label: {
+                        formatter: mk.label + '\n' + (isPace ? fmtPaceTick(mk.value) : mk.value),
+                        color: MARKER_COLORS[i], fontSize: 11, fontWeight: i === 0 ? 700 : 500,
+                        position: i % 2 === 0 ? 'end' : 'insideEndTop'
+                    }
+                };
+            });
+
+            return Object.assign(baseOption(c), {
+                title: { text: m.label + ' — density of ' + m.n + ' sessions', left: 'center',
+                         textStyle: { color: c.text, fontSize: 15 } },
+                tooltip: Object.assign(baseOption(c).tooltip, {
+                    trigger: 'axis',
+                    formatter: function (ps) {
+                        var p = ps[0];
+                        return fmtVal(p.value[0]) + '<br>density: ' + p.value[1].toExponential(2);
+                    }
+                }),
+                grid: { left: 50, right: 30, top: 70, bottom: 50 },
+                xAxis: Object.assign({ type: 'value', min: 'dataMin', max: 'dataMax',
+                    name: m.unit, nameLocation: 'middle', nameGap: 30,
+                    nameTextStyle: { color: c.textSoft },
+                    axisLabel: { color: c.textSoft, formatter: isPace ? fmtPaceTick : undefined } }, {
+                    axisLine: { lineStyle: { color: c.axis } },
+                    splitLine: { show: false } }),
+                yAxis: { type: 'value', max: yMax * 1.25, axisLabel: { show: false },
+                         splitLine: { show: false }, axisLine: { show: false }, axisTick: { show: false } },
+                series: [{
+                    type: 'line',
+                    data: m.x.map(function (x, i) { return [x, m.y[i]]; }),
+                    showSymbol: false, smooth: true,
+                    lineStyle: { color: PALETTE.indigo, width: 2.5 },
+                    areaStyle: {
+                        color: {
+                            type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+                            colorStops: [
+                                { offset: 0, color: 'rgba(99,121,242,0.45)' },
+                                { offset: 1, color: 'rgba(99,121,242,0.03)' }
+                            ]
+                        }
+                    },
+                    markLine: {
+                        symbol: 'none', animation: false,
+                        data: markLines,
+                        emphasis: { disabled: true }
+                    }
+                }]
+            });
+        });
+
+        var distSel = document.getElementById('dist-metric-select');
+        if (distSel) {
+            distSel.addEventListener('change', renderAll);
+        }
+    }
+
     // ── Theme toggle (replaces the old Plotly repaint) ──
     var btn = document.getElementById('theme-toggle');
     if (btn) {
